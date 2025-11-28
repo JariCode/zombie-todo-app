@@ -1,94 +1,147 @@
 <?php
-// MySQL-yhteys
+session_start();
 require 'db.php';
 
-// Haetaan tehtävät statuksilla
-$notStarted = $conn->query("SELECT * FROM tasks WHERE status='not_started' ORDER BY id DESC");
-$inProgress = $conn->query("SELECT * FROM tasks WHERE status='in_progress' ORDER BY id DESC");
-$doneTasks  = $conn->query("SELECT * FROM tasks WHERE status='done' ORDER BY id DESC");
+// Jos kirjautunut, haetaan tehtävät
+if (isset($_SESSION['user_id'])) {
+
+    $uid = intval($_SESSION['user_id']);
+
+    $notStarted = $conn->query("SELECT * FROM tasks WHERE user_id=$uid AND status='not_started' ORDER BY id DESC");
+    $inProgress = $conn->query("SELECT * FROM tasks WHERE user_id=$uid AND status='in_progress' ORDER BY id DESC");
+    $doneTasks  = $conn->query("SELECT * FROM tasks WHERE user_id=$uid AND status='done' ORDER BY id DESC");
+}
 ?>
 <!DOCTYPE html>
 <html lang="fi">
 <head>
     <meta charset="UTF-8">
-    <title>Zombi To-Do (Prototype)</title>
+    <title>Zombi To-Do</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-<!-- Veri-animaatio headerissa -->
 <div class="blood"></div>
 
 <div class="container">
 
     <img src="assets/img/header-zombie.png.png" class="hero">
 
-    <h1>ZOMBIE TO-DO</h1>
+        <?php if (!isset($_SESSION['user_id'])): ?>
 
-    <div class="todo-box">
+            <h1>ZOMBIE LOGIN</h1>
 
-        <!-- LISÄYSTOIMINTO -->
-        <form class="input-area" action="actions.php?action=add" method="POST">
-            <input type="text" name="task" placeholder="Lisää tehtävä... ennen kuin kuolleet nousevat!" required>
-            <button type="submit">Lisää</button>
-        </form>
+            <!-- LOGIN BOX -->
+            <div class="auth-box">
+                <h2 class="auth-title">Kirjaudu sisään</h2>
 
-        <!-- EI ALOITETUT -->
-        <h2 class="section-title not-started">🧠 Ei aloitetut</h2>
-        <div class="task-list">
-            <?php while ($task = $notStarted->fetch_assoc()): ?>
-                <div class="task">
-                    <span><?= htmlspecialchars($task['text']) ?></span>
-                    <div class="actions">
-                        <a href="#" data-action="start" data-id="<?= $task['id'] ?>">⚔️</a>
-                        <a href="#" data-action="delete" data-id="<?= $task['id'] ?>">🗑</a>
+                <form method="POST" action="actions.php?action=login">
+
+                    <label>Sähköposti</label>
+                    <input type="email" name="email" placeholder="example@domain.com" required>
+
+                    <label>Salasana</label>
+                    <input type="password" name="password" placeholder="********" required>
+
+                    <button type="submit">Kirjaudu sisään 🔑</button>
+                </form>
+            </div>
+
+            <div class="auth-separator">TAI LUO TILI</div>
+
+            <!-- REGISTER BOX -->
+            <div class="auth-box">
+                <h2 class="auth-title">Rekisteröidy</h2>
+
+                <form method="POST" action="actions.php?action=register">
+
+                    <label>Käyttäjänimi</label>
+                    <input type="text" name="username" placeholder="ZombieMaster91" required>
+
+                    <label>Sähköposti</label>
+                    <input type="email" name="email" placeholder="example@domain.com" required>
+
+                    <label>Salasana</label>
+                    <input type="password" name="password" placeholder="********" required>
+
+                    <button type="submit">Rekisteröidy 🧟‍♂️</button>
+                </form>
+            </div>
+
+        <?php else: ?>
+
+
+        <!-- =========================== -->
+        <!--     ZOMBIE TODO-APP        -->
+        <!-- =========================== -->
+
+        <a href="actions.php?action=logout" style="float:right; color:red;">Kirjaudu ulos</a>
+
+        <h1>ZOMBIE TO-DO</h1>
+
+        <div class="todo-box">
+
+            <!-- LISÄYSTOIMINTO -->
+            <form class="input-area" action="actions.php?action=add" method="POST">
+                <input type="text" name="task" placeholder="Lisää tehtävä... ennen kuin kuolleet nousevat!" required>
+                <button type="submit">Lisää</button>
+            </form>
+
+            <!-- EI ALOITETUT -->
+            <h2 class="section-title not-started">🧠 Ei aloitetut</h2>
+            <div class="task-list">
+                <?php while ($task = $notStarted->fetch_assoc()): ?>
+                    <div class="task">
+                        <span><?= htmlspecialchars($task['text']) ?></span>
+                        <div class="actions">
+                            <a href="#" data-action="start" data-id="<?= $task['id'] ?>">⚔️</a>
+                            <a href="#" data-action="delete" data-id="<?= $task['id'] ?>">🗑</a>
+                        </div>
                     </div>
-                </div>
-            <?php endwhile; ?>
-        </div>
+                <?php endwhile; ?>
+            </div>
 
-        <!-- KÄYNNISSÄ -->
-        <h2 class="section-title in-progress">🪓 Käynnissä</h2>
-        <div class="task-list">
-            <?php while ($task = $inProgress->fetch_assoc()): ?>
-                <div class="task">
-                    <span><?= htmlspecialchars($task['text']) ?></span>
-                    <div class="actions">
-                        <a href="#" data-action="done" data-id="<?= $task['id'] ?>">✓</a>
-                        <a href="#" data-action="delete" data-id="<?= $task['id'] ?>">🗑</a>
+            <!-- KÄYNNISSÄ -->
+            <h2 class="section-title in-progress">🪓 Käynnissä</h2>
+            <div class="task-list">
+                <?php while ($task = $inProgress->fetch_assoc()): ?>
+                    <div class="task">
+                        <span><?= htmlspecialchars($task['text']) ?></span>
+                        <div class="actions">
+                            <a href="#" data-action="done" data-id="<?= $task['id'] ?>">✓</a>
+                            <a href="#" data-action="delete" data-id="<?= $task['id'] ?>">🗑</a>
+                        </div>
                     </div>
-                </div>
-            <?php endwhile; ?>
-        </div>
+                <?php endwhile; ?>
+            </div>
 
-        <!-- VALMIIT -->
-        <h2 class="section-title done-title">🪦 Valmiit</h2>
-        <div class="task-list">
-            <?php while ($task = $doneTasks->fetch_assoc()): ?>
-                <div class="task done">
-                    <span><?= htmlspecialchars($task['text']) ?></span>
-                    <div class="actions">
-                        <a href="#" data-action="delete" data-id="<?= $task['id'] ?>">🗑</a>
+            <!-- VALMIIT -->
+            <h2 class="section-title done-title">🪦 Valmiit</h2>
+            <div class="task-list">
+                <?php while ($task = $doneTasks->fetch_assoc()): ?>
+                    <div class="task done">
+                        <span><?= htmlspecialchars($task['text']) ?></span>
+                        <div class="actions">
+                            <a href="#" data-action="delete" data-id="<?= $task['id'] ?>">🗑</a>
+                        </div>
                     </div>
-                </div>
-            <?php endwhile; ?>
-        </div>
+                <?php endwhile; ?>
+            </div>
 
-    </div> <!-- todo-box -->
+        </div> <!-- todo-box -->
+
+    <?php endif; ?>
 
 </div> <!-- container -->
 
+<?php if (isset($_SESSION['user_id'])): ?>
 <script>
 // Päivitä tehtävät ilman reloadia
 async function refreshTasks() {
     const html = await fetch("partial-tasks.php").then(res => res.text());
     const box = document.querySelector(".todo-box");
-
-    // Säilytä lisäyslomake
     const form = box.querySelector("form").outerHTML;
-
     box.innerHTML = form + html;
-
     attachTaskEvents();
 }
 
@@ -96,35 +149,25 @@ function attachTaskEvents() {
     document.querySelectorAll(".actions a").forEach(a => {
         a.addEventListener("click", async (e) => {
             e.preventDefault();
-
             const action = a.dataset.action;
             const id     = a.dataset.id;
-
             await fetch(`actions.php?action=${action}&id=${id}`);
-
             refreshTasks();
         });
     });
 }
 
-// LISÄÄ TEHTÄVÄ AJAXILLA
 document.querySelector(".input-area").addEventListener("submit", async (e) => {
     e.preventDefault();
-
     const formData = new FormData(e.target);
-
-    await fetch("actions.php?action=add", {
-        method: "POST",
-        body: formData
-    });
-
+    await fetch("actions.php?action=add", { method: "POST", body: formData });
     e.target.reset();
     refreshTasks();
 });
 
-// Ensimmäinen lataus
 attachTaskEvents();
 </script>
+<?php endif; ?>
 
 </body>
 </html>

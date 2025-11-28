@@ -155,4 +155,84 @@ button:hover {
     }
 }
 
+/* LOGIN / REGISTER otsikot */
+.auth-title {
+    color: #ff4444;
+    font-family: Impact, sans-serif;
+    text-align: center;
+    letter-spacing: 2px;
+    margin-bottom: 15px;
+}
+
+/* Auth-lomakelaatikko */
+.auth-box {
+    margin-top: 20px;
+    padding: 20px;
+    background: rgba(20, 0, 0, 0.8);
+    border: 2px solid #660000;
+    box-shadow: 0 0 15px #000;
+}
+
+/* Input labelit */
+.auth-box label {
+    display: block;
+    margin-bottom: 6px;
+    color: #ffbbbb;
+    font-size: 0.9rem;
+    text-shadow: 1px 1px black;
+}
+
+/* Input-kentät */
+.auth-box input {
+    width: 100%;
+    padding: 12px;
+    margin-bottom: 15px;
+    background: #111;
+    border: 2px solid #660000;
+    color: #ffdddd;
+    font-size: 1rem;
+    border-radius: 4px;
+    box-sizing: border-box;   /* <--- KORJAUS */
+}
+
+
+/* Rekisteröidy ja login -napit */
+.auth-box button {
+    width: 100%;
+    padding: 12px;
+    border: none;
+    font-weight: bold;
+    background: #990000;
+    color: #fff;
+    cursor: pointer;
+    font-size: 1.1rem;
+    border-radius: 3px;
+    transition: 0.2s;
+}
+
+.auth-box button:hover {
+    background: #cc0000;
+}
+
+/* LOGIN ↔ REGISTER separator */
+.auth-separator {
+    text-align: center;
+    margin: 20px 0;
+    color: #bb4444;
+    font-family: Impact, sans-serif;
+    letter-spacing: 2px;
+    font-size: 1.2rem;
+}
+
+/* Logout */
+.logout-link {
+    float: right;
+    margin-bottom: 10px;
+    color: #ff6666;
+    text-decoration: none;
+}
+
+.logout-link:hover {
+    color: #ff9999;
+}
 
