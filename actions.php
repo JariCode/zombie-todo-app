@@ -116,7 +116,8 @@ if ($action === "add") {
     $task = trim($_POST['task'] ?? '');
 
     if ($task === '') {
-        echo json_encode(['success' => false]);
+        $_SESSION['error'] = "Tehtävä ei voi olla tyhjä!";
+        header("Location: index.php");
         exit;
     }
 
@@ -125,7 +126,8 @@ if ($action === "add") {
     $stmt->execute();
     $stmt->close();
 
-    echo json_encode(['success' => true]);
+    $_SESSION['success'];
+    header("Location: index.php");
     exit;
 }
 

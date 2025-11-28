@@ -38,50 +38,51 @@ if (isset($_SESSION['user_id'])) {
 
     <?php if (!isset($_SESSION['user_id'])): ?>
 
-        <!-- =========================== -->
-        <!--          LOGIN BOX         -->
-        <!-- =========================== -->
+    <!-- =========================== -->
+    <!--          LOGIN BOX         -->
+    <!-- =========================== -->
 
-        <h1>ZOMBIE LOGIN</h1>
+    <h1>ZOMBIE LOGIN</h1>
 
-        <div class="auth-box">
-            <h2 class="auth-title">Kirjaudu sisään</h2>
+    <div class="auth-box">
+        <h2 class="auth-title">Kirjaudu sisään</h2>
 
-            <form method="POST" action="actions.php?action=login">
+        <form method="POST" action="actions.php?action=login" autocomplete="off">
 
-                <label>Sähköposti</label>
-                <input type="email" name="email" placeholder="example@domain.com" required>
+            <label>Sähköposti</label>
+            <input type="email" name="email" placeholder="example@domain.com" required autocomplete="off">
 
-                <label>Salasana</label>
-                <input type="password" name="password" placeholder="********" required>
+            <label>Salasana</label>
+            <input type="password" name="password" placeholder="********" required autocomplete="off">
 
-                <button type="submit">Kirjaudu sisään 🔑</button>
-            </form>
-        </div>
+            <button type="submit">Kirjaudu sisään 🔑</button>
+        </form>
+    </div>
 
-        <div class="auth-separator">TAI LUO TILI</div>
+    <div class="auth-separator">TAI LUO TILI</div>
 
-        <!-- =========================== -->
-        <!--        REGISTER BOX         -->
-        <!-- =========================== -->
+    <!-- =========================== -->
+    <!--        REGISTER BOX         -->
+    <!-- =========================== -->
 
-        <div class="auth-box">
-            <h2 class="auth-title">Rekisteröidy</h2>
+    <div class="auth-box">
+        <h2 class="auth-title">Rekisteröidy</h2>
 
-            <form method="POST" action="actions.php?action=register">
+        <form method="POST" action="actions.php?action=register" autocomplete="off">
 
-                <label>Käyttäjänimi</label>
-                <input type="text" name="username" placeholder="ZombieMaster91" required>
+            <label>Käyttäjänimi</label>
+            <input type="text" name="username" placeholder="ZombieMaster91" required autocomplete="off">
 
-                <label>Sähköposti</label>
-                <input type="email" name="email" placeholder="example@domain.com" required>
+            <label>Sähköposti</label>
+            <input type="email" name="email" placeholder="example@domain.com" required autocomplete="off">
 
-                <label>Salasana</label>
-                <input type="password" name="password" placeholder="********" required>
+            <label>Salasana</label>
+            <input type="password" name="password" placeholder="********" required autocomplete="off">
 
-                <button type="submit">Rekisteröidy 🧟‍♂️</button>
-            </form>
-        </div>
+            <button type="submit">Rekisteröidy 🧟‍♂️</button>
+        </form>
+    </div>
+
 
     <?php else: ?>
 
@@ -155,8 +156,14 @@ async function refreshTasks() {
     const html = await fetch("partial-tasks.php").then(res => res.text());
     const box = document.querySelector(".todo-box");
     const form = box.querySelector("form").outerHTML;
+
     box.innerHTML = form + html;
     attachTaskEvents();
+    setupEnterKey();
+    setupFormSubmit();
+
+    // Aseta kursori input-kenttään
+    focusInput();
 }
 
 function attachTaskEvents() {
@@ -171,16 +178,45 @@ function attachTaskEvents() {
     });
 }
 
-document.querySelector(".input-area").addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const formData = new FormData(e.target);
-    await fetch("actions.php?action=add", { method: "POST", body: formData });
-    e.target.reset();
-    refreshTasks();
-});
+function setupEnterKey() {
+    const input = document.querySelector(".input-area input");
+    if (!input) return;
 
+    input.addEventListener("keydown", function (e) {
+        if (e.key === "Enter") {
+            e.preventDefault();
+            document.querySelector(".input-area").requestSubmit();
+        }
+    });
+}
+
+function setupFormSubmit() {
+    const form = document.querySelector(".input-area");
+    if (!form) return;
+
+    form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        await fetch("actions.php?action=add", { method: "POST", body: formData });
+        e.target.reset();
+        refreshTasks();
+    });
+}
+
+// Uusi apufunktio: fokusoi input-kenttä
+function focusInput() {
+    const input = document.querySelector(".input-area input");
+    if (input) input.focus();
+}
+
+// Alustetaan kun sivu latautuu
 attachTaskEvents();
+setupEnterKey();
+setupFormSubmit();
+focusInput(); // kursori heti input-kenttään
+
 </script>
+
 <?php endif; ?>
 
 </body>
