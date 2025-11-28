@@ -1,45 +1,87 @@
 <?php
-// Lataa .env muuttujat
+// ===========================================================
+// 1) LATAA .ENV TIEDOSTO TURVALLISESTI
+// ===========================================================
 $envFile = __DIR__ . "/.env";
 
 if (file_exists($envFile)) {
-    $lines = file($envFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+    foreach (file($envFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) as $line) {
 
-    foreach ($lines as $line) {
-        if (str_starts_with(trim($line), "#")) continue;
-        list($name, $value) = explode("=", $line, 2);
-        $_ENV[$name] = trim($value);
+        $line = trim($line);
+
+        if ($line === "" || str_starts_with($line, "#")) continue;
+        if (!str_contains($line, "=")) continue;
+
+        list($key, $value) = explode("=", $line, 2);
+        $value = trim($value, "\"' ");
+
+        $_ENV[$key] = $value;
     }
 }
 
-// Haetaan ENV-arvot
-$host = $_ENV["DB_HOST"] ?? "localhost";
-$user = $_ENV["DB_USER"] ?? "root";
-$pass = $_ENV["DB_PASS"] ?? "";
+// ===========================================================
+// 2) TIETOKANTA-ASETUKSET (.ENV TAI OLETUKSET)
+// ===========================================================
+$host   = $_ENV["DB_HOST"] ?? "localhost";
+$user   = $_ENV["DB_USER"] ?? "root";
+$pass   = $_ENV["DB_PASS"] ?? "";
 $dbname = $_ENV["DB_NAME"] ?? "zombie_todo";
 
-// 🔥 1: Yhdistetään ilman tietokantaa
+// ===========================================================
+// 3) YHDISTYS ILMAN TIETOKANTAA
+// ===========================================================
 $conn = new mysqli($host, $user, $pass);
 
 if ($conn->connect_error) {
-    die("Tietokantavirhe (yhteys): " . $conn->connect_error);
+    die("Tietokantavirhe: " . $conn->connect_error);
 }
 
-// 🔥 2: Luodaan tietokanta jos ei ole olemassa
-$conn->query("CREATE DATABASE IF NOT EXISTS $dbname CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci");
+// ===========================================================
+// 4) LUODAAN TIETOKANTA JOS PUUTTUU
+// ===========================================================
+$conn->query("
+    CREATE DATABASE IF NOT EXISTS `$dbname`
+    CHARACTER SET utf8mb4
+    COLLATE utf8mb4_general_ci
+");
 
-// 🔥 3: Valitaan tietokanta
+// ===========================================================
+// 5) VALITAAN TIETOKANTA
+// ===========================================================
 $conn->select_db($dbname);
 
-// 🔥 4: Luodaan taulu jos sitä ei ole
-$createTableSQL = "
+// ===========================================================
+// 6) LUODAAN USERS -TAULU (UUTENA JA PUHTAANA)
+// ===========================================================
+$conn->query("
+CREATE TABLE IF NOT EXISTS users (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(50) NOT NULL,
+    email VARCHAR(100) NOT NULL UNIQUE,
+    password VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+");
+
+// ===========================================================
+// 7) LUODAAN TASKS -TAULU (KÄYTTÄJÄKOHTAINEN, VIITEAVAIN)
+// ===========================================================
+$conn->query("
 CREATE TABLE IF NOT EXISTS tasks (
     id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
     text VARCHAR(255) NOT NULL,
     status ENUM('not_started', 'in_progress', 'done') NOT NULL DEFAULT 'not_started',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-";
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
-$conn->query($createTableSQL);
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+");
+
+// ===========================================================
+// 8) INDEKSIT SUORITUSKYVYN PARANTAMISEEN
+// ===========================================================
+$conn->query("CREATE INDEX IF NOT EXISTS idx_user_status ON tasks (user_id, status)");
+$conn->query("CREATE INDEX IF NOT EXISTS idx_created ON tasks (created_at)");
+
 ?>

@@ -4,7 +4,6 @@ require 'db.php';
 
 // Jos kirjautunut, haetaan tehtävät
 if (isset($_SESSION['user_id'])) {
-
     $uid = intval($_SESSION['user_id']);
 
     $notStarted = $conn->query("SELECT * FROM tasks WHERE user_id=$uid AND status='not_started' ORDER BY id DESC");
@@ -21,67 +20,82 @@ if (isset($_SESSION['user_id'])) {
 </head>
 <body>
 
+<!-- Veri -->
 <div class="blood"></div>
 
 <div class="container">
 
     <img src="assets/img/header-zombie.png.png" class="hero">
 
-        <?php if (!isset($_SESSION['user_id'])): ?>
+    <!-- VIRHE- JA ONNISTUMISVIESTIT -->
+    <?php if (!empty($_SESSION['error'])): ?>
+        <div class="auth-error"><?= $_SESSION['error']; unset($_SESSION['error']); ?></div>
+    <?php endif; ?>
 
-            <h1>ZOMBIE LOGIN</h1>
+    <?php if (!empty($_SESSION['success'])): ?>
+        <div class="auth-success"><?= $_SESSION['success']; unset($_SESSION['success']); ?></div>
+    <?php endif; ?>
 
-            <!-- LOGIN BOX -->
-            <div class="auth-box">
-                <h2 class="auth-title">Kirjaudu sisään</h2>
-
-                <form method="POST" action="actions.php?action=login">
-
-                    <label>Sähköposti</label>
-                    <input type="email" name="email" placeholder="example@domain.com" required>
-
-                    <label>Salasana</label>
-                    <input type="password" name="password" placeholder="********" required>
-
-                    <button type="submit">Kirjaudu sisään 🔑</button>
-                </form>
-            </div>
-
-            <div class="auth-separator">TAI LUO TILI</div>
-
-            <!-- REGISTER BOX -->
-            <div class="auth-box">
-                <h2 class="auth-title">Rekisteröidy</h2>
-
-                <form method="POST" action="actions.php?action=register">
-
-                    <label>Käyttäjänimi</label>
-                    <input type="text" name="username" placeholder="ZombieMaster91" required>
-
-                    <label>Sähköposti</label>
-                    <input type="email" name="email" placeholder="example@domain.com" required>
-
-                    <label>Salasana</label>
-                    <input type="password" name="password" placeholder="********" required>
-
-                    <button type="submit">Rekisteröidy 🧟‍♂️</button>
-                </form>
-            </div>
-
-        <?php else: ?>
-
+    <?php if (!isset($_SESSION['user_id'])): ?>
 
         <!-- =========================== -->
-        <!--     ZOMBIE TODO-APP        -->
+        <!--          LOGIN BOX         -->
         <!-- =========================== -->
 
-        <a href="actions.php?action=logout" style="float:right; color:red;">Kirjaudu ulos</a>
+        <h1>ZOMBIE LOGIN</h1>
+
+        <div class="auth-box">
+            <h2 class="auth-title">Kirjaudu sisään</h2>
+
+            <form method="POST" action="actions.php?action=login">
+
+                <label>Sähköposti</label>
+                <input type="email" name="email" placeholder="example@domain.com" required>
+
+                <label>Salasana</label>
+                <input type="password" name="password" placeholder="********" required>
+
+                <button type="submit">Kirjaudu sisään 🔑</button>
+            </form>
+        </div>
+
+        <div class="auth-separator">TAI LUO TILI</div>
+
+        <!-- =========================== -->
+        <!--        REGISTER BOX         -->
+        <!-- =========================== -->
+
+        <div class="auth-box">
+            <h2 class="auth-title">Rekisteröidy</h2>
+
+            <form method="POST" action="actions.php?action=register">
+
+                <label>Käyttäjänimi</label>
+                <input type="text" name="username" placeholder="ZombieMaster91" required>
+
+                <label>Sähköposti</label>
+                <input type="email" name="email" placeholder="example@domain.com" required>
+
+                <label>Salasana</label>
+                <input type="password" name="password" placeholder="********" required>
+
+                <button type="submit">Rekisteröidy 🧟‍♂️</button>
+            </form>
+        </div>
+
+    <?php else: ?>
+
+        <!-- =========================== -->
+        <!--        TODO-APPLICATION     -->
+        <!-- =========================== -->
+
+        <a href="actions.php?action=logout" class="logout-link">Kirjaudu ulos ❌</a>
 
         <h1>ZOMBIE TO-DO</h1>
 
         <div class="todo-box">
 
-            <!-- LISÄYSTOIMINTO -->
+            <!-- LISÄÄ TEHTÄVÄ -->
             <form class="input-area" action="actions.php?action=add" method="POST">
                 <input type="text" name="task" placeholder="Lisää tehtävä... ennen kuin kuolleet nousevat!" required>
                 <button type="submit">Lisää</button>
