@@ -1,0 +1,158 @@
+body {
+    margin: 0;
+    padding: 0;
+    background: url('assets/img/tausta.png') center/cover no-repeat fixed;
+    font-family: 'Courier New', monospace;
+    color: #ff4444;
+    text-shadow: 2px 2px black;
+}
+
+/* Zombi-kortin wrapper */
+.container {
+    max-width: 600px;
+    margin: 20px auto 40px auto;
+    background: rgba(0, 0, 0, 0.75);
+    padding: 20px;
+    border: 3px solid #4a0000;
+    box-shadow: 0 0 25px #000;
+    position: relative;
+    z-index: 20;
+}
+
+/* Logo / header-kuva */
+.hero {
+    width: 80%;
+    margin: 0 auto 10px auto;
+    display: block;
+}
+
+/* Pääotsikko */
+h1 {
+    font-family: Impact, sans-serif;
+    font-size: 3rem;
+    text-align: center;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: #ff2222;
+    margin: 0 0 15px 0;
+    padding: 0;
+}
+
+/* Task-kategoriat */
+.section-title {
+    font-family: Impact, sans-serif;
+    font-size: 1.4rem;
+    letter-spacing: 2px;
+    margin: 15px 0 8px 0;
+    text-transform: uppercase;
+}
+
+.not-started { 
+    color: #bb3333; /* tummempi verenpunainen */
+}
+
+.in-progress { 
+    color: #cc8833; /* likainen oranssi / ruoste */
+}
+
+.done-title { 
+    color: #55aa55; /* sammuneen vihreä / zombie-vihreä */
+}
+
+
+/* Task-list wrapper */
+.task-list {
+    margin-bottom: 10px;
+}
+
+/* Input-alue */
+.input-area {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+input[type=text] {
+    flex: 1;
+    padding: 10px;
+    background: #111;
+    border: 2px solid #660000;
+    color: #ffdddd;
+}
+
+button {
+    padding: 10px 15px;
+    font-weight: bold;
+    background: #990000;
+    border: none;
+    color: white;
+    cursor: pointer;
+}
+
+button:hover {
+    background: #cc0000;
+}
+
+/* Tehtävät */
+.task {
+    padding: 12px;
+    background: rgba(30, 0, 0, 0.7);
+    border: 1px solid #660000;
+    margin-bottom: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.task.done {
+    color: #775555;
+    text-decoration: line-through;
+}
+
+.actions a {
+    color: #ff4444;
+    margin-left: 12px;
+    font-size: 1.2rem;
+    text-decoration: none;
+}
+
+.actions a:nth-child(1) {
+    color: #44ff44;
+}
+
+/* Yläveriroiske*/
+/* Yläveriroiske */
+.blood {
+    width: 100%;
+    height: 150%;
+    background: url('assets/img/blood.png') top center no-repeat;
+    background-size: cover;
+    position: absolute;
+    top: 0;
+    left: 0;
+    pointer-events: none;
+    z-index: 10;
+
+    animation: bloodDisappear 4s ease-out forwards;
+}
+
+/* Veri valuu, näkyy hetken, katoaa */
+@keyframes bloodDisappear {
+    0% {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    20% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+    60% {
+        opacity: 1;
+    }
+    100% {
+        opacity: 0;   /* KATOAA */
+        transform: translateY(0);
+    }
+}
+
+

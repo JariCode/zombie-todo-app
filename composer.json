@@ -1,0 +1,17 @@
+{
+    "name": "jarik/zombie-todo-app",
+    "autoload": {
+        "psr-4": {
+            "Jarik\\ZombieTodoApp\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "Jari Karri",
+            "email": "jari.karri@gmail.com"
+        }
+    ],
+    "require": {
+        "mongodb/mongodb": "^1.15.0"
+    }
+}
