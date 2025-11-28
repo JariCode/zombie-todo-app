@@ -1,77 +1,52 @@
 <?php
-// Ladataan MongoDB-yhteys
-require 'mongo.php';
+require 'db.php';
 
-// Luetaan toiminto ja id
-$action = $_GET['action'] ?? ($_POST['action'] ?? null);
-$id     = $_GET['id']     ?? null;
+$action = $_GET['action'] ?? null;
+$id = intval($_GET['id'] ?? 0);
 
-// Varmistetaan ID-muoto tarvittaessa
-function mongoId($id) {
-    return new MongoDB\BSON\ObjectId($id);
-}
-
-// ----------------------------------------
-// 1) LISÄÄ TEHTÄVÄ
-// ----------------------------------------
-if ($action === 'add') {
-
-    if (!empty($_POST['task'])) {
-
-        $collection->insertOne([
-            'text'       => trim($_POST['task']),
-            'status'     => 'not_started',   // OIKEA status
-            'created_at' => new MongoDB\BSON\UTCDateTime()
-        ]);
-    }
+// LISÄÄ TEHTÄVÄ
+if ($action === "add" && !empty($_POST['task'])) {
+    $stmt = $conn->prepare("INSERT INTO tasks (text, status) VALUES (?, 'not_started')");
+    $stmt->bind_param("s", $_POST['task']);
+    $stmt->execute();
+    $stmt->close();
 
     header("Location: index.php");
     exit;
 }
 
-// ----------------------------------------
-// 2) MERKITSE ALOITETUKSI (not_started → in_progress)
-// ----------------------------------------
-if ($action === 'start' && $id) {
-
-    $collection->updateOne(
-        ['_id' => mongoId($id)],
-        ['$set' => ['status' => 'in_progress']]
-    );
+// ALOITUS (not_started → in_progress)
+if ($action === "start" && $id > 0) {
+    $stmt = $conn->prepare("UPDATE tasks SET status='in_progress' WHERE id=?");
+    $stmt->bind_param("i", $id);
+    $stmt->execute();
+    $stmt->close();
 
     header("Location: index.php");
     exit;
 }
 
-// ----------------------------------------
-// 3) MERKITSE VALMIIKSI (in_progress → done)
-// ----------------------------------------
-if ($action === 'done' && $id) {
-
-    $collection->updateOne(
-        ['_id' => mongoId($id)],
-        ['$set' => ['status' => 'done']]
-    );
+// VALMIIKSI MERKITSE (in_progress → done)
+if ($action === "done" && $id > 0) {
+    $stmt = $conn->prepare("UPDATE tasks SET status='done' WHERE id=?");
+    $stmt->bind_param("i", $id);
+    $stmt->execute();
+    $stmt->close();
 
     header("Location: index.php");
     exit;
 }
 
-// ----------------------------------------
-// 4) POISTA TEHTÄVÄ
-// ----------------------------------------
-if ($action === 'delete' && $id) {
-
-    $collection->deleteOne([
-        '_id' => mongoId($id)
-    ]);
+// POISTA TASK
+if ($action === "delete" && $id > 0) {
+    $stmt = $conn->prepare("DELETE FROM tasks WHERE id=?");
+    $stmt->bind_param("i", $id);
+    $stmt->execute();
+    $stmt->close();
 
     header("Location: index.php");
     exit;
 }
 
-// Jos ei täsmää → paluu etusivulle
 header("Location: index.php");
 exit;
-
-?>

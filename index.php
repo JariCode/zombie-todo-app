@@ -1,11 +1,11 @@
 <?php
-// Ladataan MongoDB-yhteys
-require 'mongo.php';
+// MySQL-yhteys
+require 'db.php';
 
 // Haetaan tehtävät statuksilla
-$notStarted = $collection->find(['status' => 'not_started']);
-$inProgress = $collection->find(['status' => 'in_progress']);
-$doneTasks  = $collection->find(['status' => 'done']);
+$notStarted = $conn->query("SELECT * FROM tasks WHERE status='not_started' ORDER BY id DESC");
+$inProgress = $conn->query("SELECT * FROM tasks WHERE status='in_progress' ORDER BY id DESC");
+$doneTasks  = $conn->query("SELECT * FROM tasks WHERE status='done' ORDER BY id DESC");
 ?>
 <!DOCTYPE html>
 <html lang="fi">
@@ -36,42 +36,42 @@ $doneTasks  = $collection->find(['status' => 'done']);
         <!-- EI ALOITETUT -->
         <h2 class="section-title not-started">🧠 Ei aloitetut</h2>
         <div class="task-list">
-            <?php foreach ($notStarted as $task): ?>
+            <?php while ($task = $notStarted->fetch_assoc()): ?>
                 <div class="task">
                     <span><?= htmlspecialchars($task['text']) ?></span>
                     <div class="actions">
-                        <a href="actions.php?action=start&id=<?= $task['_id'] ?>">⚔️</a>
-                        <a href="actions.php?action=delete&id=<?= $task['_id'] ?>">🗑</a>
+                        <a href="#" data-action="start" data-id="<?= $task['id'] ?>">⚔️</a>
+                        <a href="#" data-action="delete" data-id="<?= $task['id'] ?>">🗑</a>
                     </div>
                 </div>
-            <?php endforeach; ?>
+            <?php endwhile; ?>
         </div>
 
         <!-- KÄYNNISSÄ -->
         <h2 class="section-title in-progress">🪓 Käynnissä</h2>
         <div class="task-list">
-            <?php foreach ($inProgress as $task): ?>
+            <?php while ($task = $inProgress->fetch_assoc()): ?>
                 <div class="task">
                     <span><?= htmlspecialchars($task['text']) ?></span>
                     <div class="actions">
-                        <a href="actions.php?action=done&id=<?= $task['_id'] ?>">✓</a>
-                        <a href="actions.php?action=delete&id=<?= $task['_id'] ?>">🗑</a>
+                        <a href="#" data-action="done" data-id="<?= $task['id'] ?>">✓</a>
+                        <a href="#" data-action="delete" data-id="<?= $task['id'] ?>">🗑</a>
                     </div>
                 </div>
-            <?php endforeach; ?>
+            <?php endwhile; ?>
         </div>
 
         <!-- VALMIIT -->
         <h2 class="section-title done-title">🪦 Valmiit</h2>
         <div class="task-list">
-            <?php foreach ($doneTasks as $task): ?>
+            <?php while ($task = $doneTasks->fetch_assoc()): ?>
                 <div class="task done">
                     <span><?= htmlspecialchars($task['text']) ?></span>
                     <div class="actions">
-                        <a href="actions.php?action=delete&id=<?= $task['_id'] ?>">🗑</a>
+                        <a href="#" data-action="delete" data-id="<?= $task['id'] ?>">🗑</a>
                     </div>
                 </div>
-            <?php endforeach; ?>
+            <?php endwhile; ?>
         </div>
 
     </div> <!-- todo-box -->
@@ -79,13 +79,17 @@ $doneTasks  = $collection->find(['status' => 'done']);
 </div> <!-- container -->
 
 <script>
-// Lataa tehtävät sivulle ilman reloadia
+// Päivitä tehtävät ilman reloadia
 async function refreshTasks() {
     const html = await fetch("partial-tasks.php").then(res => res.text());
-    document.querySelector(".todo-box").innerHTML = 
-        document.querySelector(".todo-box").querySelector("form").outerHTML + html;
+    const box = document.querySelector(".todo-box");
 
-    attachTaskEvents(); // lisää klikkikuuntelijat uudelleen
+    // Säilytä lisäyslomake
+    const form = box.querySelector("form").outerHTML;
+
+    box.innerHTML = form + html;
+
+    attachTaskEvents();
 }
 
 function attachTaskEvents() {
@@ -103,7 +107,7 @@ function attachTaskEvents() {
     });
 }
 
-// LISÄÄ TEHTÄVÄ AJAXINA
+// LISÄÄ TEHTÄVÄ AJAXILLA
 document.querySelector(".input-area").addEventListener("submit", async (e) => {
     e.preventDefault();
 
