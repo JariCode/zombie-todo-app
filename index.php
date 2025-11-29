@@ -123,57 +123,80 @@ if (isset($_SESSION['user_id'])) {
             <a href="actions.php?action=logout" class="logout-link">Kirjaudu ulos ❌</a>
         </div>
         <h1>ZOMBIE TO-DO</h1>
+<!-- =========================== -->
+<!--        TODO-APPLICATION     -->
+<!-- =========================== -->
 
-        <!-- =========================== -->
-        <!--        TODO-APPLICATION     -->
-        <!-- =========================== -->
+<div class="todo-box">
 
-        <div class="todo-box">
+    <form class="input-area" action="actions.php?action=add" method="POST">
+        <input type="text" name="task" placeholder="Lisää tehtävä... ennen kuin kuolleet nousevat!" required>
+        <button type="submit">Lisää</button>
+    </form>
 
-            <form class="input-area" action="actions.php?action=add" method="POST">
-                <input type="text" name="task" placeholder="Lisää tehtävä... ennen kuin kuolleet nousevat!" required>
-                <button type="submit">Lisää</button>
-            </form>
+    <!-- EI ALOITETUT -->
+    <h2 class="section-title not-started">🧠 Ei aloitetut</h2>
+    <div class="task-list">
+        <?php while ($task = $notStarted->fetch_assoc()): ?>
+            <div class="task">
+                <span><?= clean($task['text']) ?></span>
 
-            <h2 class="section-title not-started">🧠 Ei aloitetut</h2>
-            <div class="task-list">
-                <?php while ($task = $notStarted->fetch_assoc()): ?>
-                    <div class="task">
-                        <span><?= clean($task['text']) ?></span>
-                        <div class="actions">
-                            <a href="#" data-action="start" data-id="<?= $task['id'] ?>">⚔️</a>
-                            <a href="#" data-action="delete" data-id="<?= $task['id'] ?>">🗑</a>
-                        </div>
-                    </div>
-                <?php endwhile; ?>
+                <small class="timestamp">
+                    Lisätty: <?= date("d.m.Y H:i", strtotime($task['created_at'])) ?>
+                </small>
+
+                <div class="actions">
+                    <a href="#" data-action="start" data-id="<?= $task['id'] ?>">⚔️</a>
+                    <a href="#" data-action="delete" data-id="<?= $task['id'] ?>">🗑</a>
+                </div>
             </div>
+        <?php endwhile; ?>
+    </div>
 
-            <h2 class="section-title in-progress">🪓 Käynnissä</h2>
-            <div class="task-list">
-                <?php while ($task = $inProgress->fetch_assoc()): ?>
-                    <div class="task">
-                        <span><?= clean($task['text']) ?></span>
-                        <div class="actions">
-                            <a href="#" data-action="done" data-id="<?= $task['id'] ?>">✓</a>
-                            <a href="#" data-action="delete" data-id="<?= $task['id'] ?>">🗑</a>
-                        </div>
-                    </div>
-                <?php endwhile; ?>
+    <!-- KÄYNNISSÄ -->
+    <h2 class="section-title in-progress">🪓 Käynnissä</h2>
+    <div class="task-list">
+        <?php while ($task = $inProgress->fetch_assoc()): ?>
+            <div class="task">
+                <span><?= clean($task['text']) ?></span>
+
+                <small class="timestamp">
+                    Lisätty: <?= date("d.m.Y H:i", strtotime($task['created_at'])) ?>
+                    <br>Aloitettu: <?= date("d.m.Y H:i", strtotime($task['started_at'])) ?>
+                </small>
+
+                <div class="actions">
+                    <a href="#" data-action="done" data-id="<?= $task['id'] ?>">✓</a>
+                    <a href="#" data-action="delete" data-id="<?= $task['id'] ?>">🗑</a>
+                </div>
             </div>
+        <?php endwhile; ?>
+    </div>
 
-            <h2 class="section-title done-title">🪦 Valmiit</h2>
-            <div class="task-list">
-                <?php while ($task = $doneTasks->fetch_assoc()): ?>
-                    <div class="task done">
-                        <span><?= clean($task['text']) ?></span>
-                        <div class="actions">
-                            <a href="#" data-action="delete" data-id="<?= $task['id'] ?>">🗑</a>
-                        </div>
-                    </div>
-                <?php endwhile; ?>
+    <!-- VALMIIT -->
+    <h2 class="section-title done-title">🪦 Valmiit</h2>
+    <div class="task-list">
+        <?php while ($task = $doneTasks->fetch_assoc()): ?>
+            <div class="task done">
+                <span><?= clean($task['text']) ?></span>
+
+                <small class="timestamp">
+                    Lisätty: <?= date("d.m.Y H:i", strtotime($task['created_at'])) ?>
+                    <?php if (!empty($task['started_at'])): ?>
+                        <br>Aloitettu: <?= date("d.m.Y H:i", strtotime($task['started_at'])) ?>
+                    <?php endif; ?>
+                    <br>Valmis: <?= date("d.m.Y H:i", strtotime($task['done_at'])) ?>
+                </small>
+
+                <div class="actions">
+                    <a href="#" data-action="delete" data-id="<?= $task['id'] ?>">🗑</a>
+                </div>
             </div>
+        <?php endwhile; ?>
+    </div>
 
-        </div>
+</div>
+
 
     <?php endif; ?>
 

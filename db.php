@@ -72,10 +72,14 @@ CREATE TABLE IF NOT EXISTS tasks (
     user_id INT NOT NULL,
     text VARCHAR(255) NOT NULL,
     status ENUM('not_started', 'in_progress', 'done') NOT NULL DEFAULT 'not_started',
+
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    started_at DATETIME NULL,
+    done_at DATETIME NULL,
 
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 ");
 
 // ===========================================================

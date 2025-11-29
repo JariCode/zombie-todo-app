@@ -290,6 +290,15 @@ button:hover {
     color: #ff6b6b;
 }
 
+.timestamp {
+    display: block;
+    margin-top: 6px;
+    font-size: 0.75rem;
+    color: #aa8888;
+    text-shadow: none;
+}
+
+
 @media (max-width: 480px) {
 
     .container {

@@ -15,20 +15,37 @@ $uid = intval($_SESSION['user_id']);
 // -------------------------
 // Haetaan käyttäjäkohtaiset taskit
 // -------------------------
-$notStarted = $conn->prepare("SELECT id, text FROM tasks WHERE user_id=? AND status='not_started' ORDER BY id DESC");
+$notStarted = $conn->prepare("
+    SELECT id, text, created_at 
+    FROM tasks 
+    WHERE user_id=? AND status='not_started' 
+    ORDER BY id DESC
+");
 $notStarted->bind_param("i", $uid);
 $notStarted->execute();
 $notStartedRes = $notStarted->get_result();
 
-$inProgress = $conn->prepare("SELECT id, text FROM tasks WHERE user_id=? AND status='in_progress' ORDER BY id DESC");
+$inProgress = $conn->prepare("
+    SELECT id, text, created_at, started_at
+    FROM tasks 
+    WHERE user_id=? AND status='in_progress' 
+    ORDER BY id DESC
+");
 $inProgress->bind_param("i", $uid);
 $inProgress->execute();
 $inProgressRes = $inProgress->get_result();
 
-$doneTasks = $conn->prepare("SELECT id, text FROM tasks WHERE user_id=? AND status='done' ORDER BY id DESC");
+$doneTasks = $conn->prepare("
+    SELECT id, text, created_at, started_at, done_at
+    FROM tasks 
+    WHERE user_id=? AND status='done' 
+    ORDER BY id DESC
+");
 $doneTasks->bind_param("i", $uid);
 $doneTasks->execute();
 $doneTasksRes = $doneTasks->get_result();
+
+function clean($v) { return htmlspecialchars($v, ENT_QUOTES, 'UTF-8'); }
 ?>
 
 <!-- ============================= -->
@@ -38,7 +55,10 @@ $doneTasksRes = $doneTasks->get_result();
 <div class="task-list">
 <?php while ($task = $notStartedRes->fetch_assoc()): ?>
     <div class="task">
-        <span><?= htmlspecialchars($task['text']) ?></span>
+        <span>
+            <?= clean($task['text']) ?><br>
+            <small style="color:#aa7777;">🕒 Lisätty: <?= clean($task['created_at']) ?></small>
+        </span>
         <div class="actions">
             <a href="#" data-action="start" data-id="<?= $task['id'] ?>">⚔️</a>
             <a href="#" data-action="delete" data-id="<?= $task['id'] ?>">🗑</a>
@@ -54,7 +74,11 @@ $doneTasksRes = $doneTasks->get_result();
 <div class="task-list">
 <?php while ($task = $inProgressRes->fetch_assoc()): ?>
     <div class="task">
-        <span><?= htmlspecialchars($task['text']) ?></span>
+        <span>
+            <?= clean($task['text']) ?><br>
+            <small style="color:#aa7777;">🕒 Aloitettu: <?= clean($task['started_at']) ?></small><br>
+            <small style="color:#775555;">📌 Lisätty: <?= clean($task['created_at']) ?></small>
+        </span>
         <div class="actions">
             <a href="#" data-action="done" data-id="<?= $task['id'] ?>">✓</a>
             <a href="#" data-action="delete" data-id="<?= $task['id'] ?>">🗑</a>
@@ -70,7 +94,12 @@ $doneTasksRes = $doneTasks->get_result();
 <div class="task-list">
 <?php while ($task = $doneTasksRes->fetch_assoc()): ?>
     <div class="task done">
-        <span><?= htmlspecialchars($task['text']) ?></span>
+        <span>
+            <?= clean($task['text']) ?><br>
+            <small style="color:#55aa55;">✔ Valmis: <?= clean($task['done_at']) ?></small><br>
+            <small style="color:#aa7777;">🕒 Aloitettu: <?= clean($task['started_at']) ?></small><br>
+            <small style="color:#775555;">📌 Lisätty: <?= clean($task['created_at']) ?></small>
+        </span>
         <div class="actions">
             <a href="#" data-action="delete" data-id="<?= $task['id'] ?>">🗑</a>
         </div>
