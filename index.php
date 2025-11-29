@@ -2,6 +2,9 @@
 session_start();
 require 'db.php';
 
+// Turvallinen tulostus
+function clean($v) { return htmlspecialchars($v ?? '', ENT_QUOTES, 'UTF-8'); }
+
 // Jos kirjautunut, haetaan tehtävät
 if (isset($_SESSION['user_id'])) {
     $uid = intval($_SESSION['user_id']);
@@ -29,11 +32,11 @@ if (isset($_SESSION['user_id'])) {
 
     <!-- VIRHE- JA ONNISTUMISVIESTIT -->
     <?php if (!empty($_SESSION['error'])): ?>
-        <div class="auth-error"><?= $_SESSION['error']; unset($_SESSION['error']); ?></div>
+        <div class="auth-error"><?= clean($_SESSION['error']); unset($_SESSION['error']); ?></div>
     <?php endif; ?>
 
     <?php if (!empty($_SESSION['success'])): ?>
-        <div class="auth-success"><?= $_SESSION['success']; unset($_SESSION['success']); ?></div>
+        <div class="auth-success"><?= clean($_SESSION['success']); unset($_SESSION['success']); ?></div>
     <?php endif; ?>
 
     <?php if (!isset($_SESSION['user_id'])): ?>
@@ -50,7 +53,12 @@ if (isset($_SESSION['user_id'])) {
         <form method="POST" action="actions.php?action=login" autocomplete="off">
 
             <label>Sähköposti</label>
-            <input type="email" name="email" placeholder="example@domain.com" required autocomplete="off">
+            <input type="email"
+                   name="email"
+                   placeholder="example@domain.com"
+                   required
+                   value="<?= clean($_SESSION['old_login_email'] ?? '') ?>"
+                   autocomplete="off">
 
             <label>Salasana</label>
             <input type="password" name="password" placeholder="********" required autocomplete="off">
@@ -71,31 +79,42 @@ if (isset($_SESSION['user_id'])) {
         <form method="POST" action="actions.php?action=register" autocomplete="off">
 
             <label>Käyttäjänimi</label>
-            <input type="text" name="username" placeholder="ZombieMaster91" required autocomplete="off">
+            <input type="text"
+                   name="username"
+                   placeholder="ZombieMaster91"
+                   required
+                   value="<?= clean($_SESSION['old_username'] ?? '') ?>"
+                   autocomplete="off">
 
             <label>Sähköposti</label>
-            <input type="email" name="email" placeholder="example@domain.com" required autocomplete="off">
+            <input type="email"
+                   name="email"
+                   placeholder="example@domain.com"
+                   required
+                   value="<?= clean($_SESSION['old_email'] ?? '') ?>"
+                   autocomplete="off">
 
             <label>Salasana</label>
             <input type="password" name="password" placeholder="********" required autocomplete="off">
 
-                <!-- Ruksi tietosuojaselosteen hyväksymiseen -->
-        <div class="checkbox-wrapper">
-            <label for="acceptPrivacyPolicy" class="checkbox-label">
-                <input type="checkbox" id="acceptPrivacyPolicy" name="terms" required>
-                Hyväksyn 
-                <a href="assets/doc/Kayttoehdot.pdf" target="_blank">käyttöehdot</a> ja 
-                <a href="assets/doc/Tietosuojaseloste.pdf" target="_blank">tietosuojaselosteen</a>.
-            </label>
-        </div>
-
-
-
+            <!-- Hyväksyntäruksi -->
+            <div class="checkbox-wrapper">
+                <label for="acceptPrivacyPolicy" class="checkbox-label">
+                    <input type="checkbox" id="acceptPrivacyPolicy" name="terms" required>
+                    Hyväksyn 
+                    <a href="assets/doc/Kayttoehdot.pdf" target="_blank">käyttöehdot</a> ja 
+                    <a href="assets/doc/Tietosuojaseloste.pdf" target="_blank">tietosuojaselosteen</a>.
+                </label>
+            </div>
 
             <button type="submit">Rekisteröidy 🧟‍♂️</button>
         </form>
     </div>
 
+    <?php
+        // Siivous — tämä tehdään vain kirjautumattomille
+        unset($_SESSION['old_username'], $_SESSION['old_email'], $_SESSION['old_login_email']);
+    ?>
 
     <?php else: ?>
 
@@ -120,7 +139,7 @@ if (isset($_SESSION['user_id'])) {
             <div class="task-list">
                 <?php while ($task = $notStarted->fetch_assoc()): ?>
                     <div class="task">
-                        <span><?= htmlspecialchars($task['text']) ?></span>
+                        <span><?= clean($task['text']) ?></span>
                         <div class="actions">
                             <a href="#" data-action="start" data-id="<?= $task['id'] ?>">⚔️</a>
                             <a href="#" data-action="delete" data-id="<?= $task['id'] ?>">🗑</a>
@@ -134,7 +153,7 @@ if (isset($_SESSION['user_id'])) {
             <div class="task-list">
                 <?php while ($task = $inProgress->fetch_assoc()): ?>
                     <div class="task">
-                        <span><?= htmlspecialchars($task['text']) ?></span>
+                        <span><?= clean($task['text']) ?></span>
                         <div class="actions">
                             <a href="#" data-action="done" data-id="<?= $task['id'] ?>">✓</a>
                             <a href="#" data-action="delete" data-id="<?= $task['id'] ?>">🗑</a>
@@ -148,7 +167,7 @@ if (isset($_SESSION['user_id'])) {
             <div class="task-list">
                 <?php while ($task = $doneTasks->fetch_assoc()): ?>
                     <div class="task done">
-                        <span><?= htmlspecialchars($task['text']) ?></span>
+                        <span><?= clean($task['text']) ?></span>
                         <div class="actions">
                             <a href="#" data-action="delete" data-id="<?= $task['id'] ?>">🗑</a>
                         </div>
@@ -164,7 +183,6 @@ if (isset($_SESSION['user_id'])) {
 
 <?php if (isset($_SESSION['user_id'])): ?>
 <script>
-// Päivitä tehtävät ilman reloadia
 async function refreshTasks() {
     const html = await fetch("partial-tasks.php").then(res => res.text());
     const box = document.querySelector(".todo-box");
@@ -174,8 +192,6 @@ async function refreshTasks() {
     attachTaskEvents();
     setupEnterKey();
     setupFormSubmit();
-
-    // Aseta kursori input-kenttään
     focusInput();
 }
 
@@ -216,20 +232,16 @@ function setupFormSubmit() {
     });
 }
 
-// Uusi apufunktio: fokusoi input-kenttä
 function focusInput() {
     const input = document.querySelector(".input-area input");
     if (input) input.focus();
 }
 
-// Alustetaan kun sivu latautuu
 attachTaskEvents();
 setupEnterKey();
 setupFormSubmit();
-focusInput(); // kursori heti input-kenttään
-
+focusInput();
 </script>
-
 <?php endif; ?>
 
 </body>
