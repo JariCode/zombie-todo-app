@@ -35,10 +35,6 @@ if (isset($_SESSION['user_id'])) {
         <div class="auth-error"><?= clean($_SESSION['error']); unset($_SESSION['error']); ?></div>
     <?php endif; ?>
 
-    <?php if (!empty($_SESSION['success'])): ?>
-        <div class="auth-success"><?= clean($_SESSION['success']); unset($_SESSION['success']); ?></div>
-    <?php endif; ?>
-
     <?php if (!isset($_SESSION['user_id'])): ?>
 
     <!-- =========================== -->
@@ -112,29 +108,32 @@ if (isset($_SESSION['user_id'])) {
     </div>
 
     <?php
-        // Siivous — tämä tehdään vain kirjautumattomille
         unset($_SESSION['old_username'], $_SESSION['old_email'], $_SESSION['old_login_email']);
     ?>
 
     <?php else: ?>
 
         <!-- =========================== -->
+        <!--        HEADER + LOGOUT      -->
+        <!-- =========================== -->
+
+        <div class="header-bar">
+            <span class="welcome-text">Tervetuloa, <?= clean($_SESSION['username'] ?? '') ?>!</span>
+            <a href="actions.php?action=logout" class="logout-link">Kirjaudu ulos ❌</a>
+        </div>
+        <h1>ZOMBIE TO-DO</h1>
+
+        <!-- =========================== -->
         <!--        TODO-APPLICATION     -->
         <!-- =========================== -->
 
-        <a href="actions.php?action=logout" class="logout-link">Kirjaudu ulos ❌</a>
-
-        <h1>ZOMBIE TO-DO</h1>
-
         <div class="todo-box">
 
-            <!-- LISÄÄ TEHTÄVÄ -->
             <form class="input-area" action="actions.php?action=add" method="POST">
                 <input type="text" name="task" placeholder="Lisää tehtävä... ennen kuin kuolleet nousevat!" required>
                 <button type="submit">Lisää</button>
             </form>
 
-            <!-- EI ALOITETUT -->
             <h2 class="section-title not-started">🧠 Ei aloitetut</h2>
             <div class="task-list">
                 <?php while ($task = $notStarted->fetch_assoc()): ?>
@@ -148,7 +147,6 @@ if (isset($_SESSION['user_id'])) {
                 <?php endwhile; ?>
             </div>
 
-            <!-- KÄYNNISSÄ -->
             <h2 class="section-title in-progress">🪓 Käynnissä</h2>
             <div class="task-list">
                 <?php while ($task = $inProgress->fetch_assoc()): ?>
@@ -162,7 +160,6 @@ if (isset($_SESSION['user_id'])) {
                 <?php endwhile; ?>
             </div>
 
-            <!-- VALMIIT -->
             <h2 class="section-title done-title">🪦 Valmiit</h2>
             <div class="task-list">
                 <?php while ($task = $doneTasks->fetch_assoc()): ?>
@@ -175,11 +172,11 @@ if (isset($_SESSION['user_id'])) {
                 <?php endwhile; ?>
             </div>
 
-        </div> <!-- todo-box -->
+        </div>
 
     <?php endif; ?>
 
-</div> <!-- container -->
+</div>
 
 <?php if (isset($_SESSION['user_id'])): ?>
 <script>

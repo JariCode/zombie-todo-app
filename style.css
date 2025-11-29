@@ -224,16 +224,33 @@ button:hover {
 }
 
 /* Logout */
-.logout-link {
-    float: right;
+.header-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     margin-bottom: 10px;
+}
+
+.header-bar > span {
+    margin-top: 0.7rem;
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: #ff4444;
+    text-shadow: 1px 1px black;
+}
+
+.logout-link {
     color: #ff6666;
     text-decoration: none;
+    font-size: 1.1rem;
+    margin-left: 10px;
+    float: none; /* Ei saa kellua */
 }
 
 .logout-link:hover {
     color: #ff9999;
 }
+
 
 /*Hyväksy käyttöehdot */
 .checkbox-wrapper {

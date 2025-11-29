@@ -25,21 +25,19 @@ if ($action === "register") {
     $_SESSION['old_username'] = $username;
     $_SESSION['old_email']    = $email;
 
-    // --- Kenttätyhjät? ---
     if (!$username || !$email || !$password) {
         $_SESSION['error'] = "Kaikki kentät ovat pakollisia!";
         header("Location: index.php");
         exit;
     }
 
-    // --- Terms-checkbox ---
     if (!$terms) {
         $_SESSION['error'] = "Sinun täytyy hyväksyä käyttöehdot ja tietosuojaseloste!";
         header("Location: index.php");
         exit;
     }
 
-    // --- Salasana: väh. 10 merkkiä, iso/pieni kirjain, numero ja erikoismerkki ---
+    // Salasanatarkistus
     if (
         strlen($password) < 10 ||
         !preg_match('/[A-ZÅÄÖ]/', $password) ||
@@ -52,7 +50,7 @@ if ($action === "register") {
         exit;
     }
 
-    // Tarkista että email ei ole käytössä
+    // Tarkista sähköposti
     $stmt = $conn->prepare("SELECT id FROM users WHERE email=? LIMIT 1");
     $stmt->bind_param("s", $email);
     $stmt->execute();
@@ -74,10 +72,10 @@ if ($action === "register") {
     $newUserId = $stmt->insert_id;
     $stmt->close();
 
-    // Puhdista session "old_"
     unset($_SESSION['old_username'], $_SESSION['old_email']);
 
     $_SESSION['user_id'] = $newUserId;
+    $_SESSION['username'] = $username;   // ←———— LISÄTTY
     $_SESSION['success'] = "Tervetuloa, $username!";
     header("Location: index.php");
     exit;
@@ -92,7 +90,6 @@ if ($action === "login") {
     $email    = trim($_POST['email'] ?? '');
     $password = trim($_POST['password'] ?? '');
 
-    // Säilytä sähköposti virhetilanteessa
     $_SESSION['old_login_email'] = $email;
 
     $stmt = $conn->prepare("SELECT id, username, password FROM users WHERE email=? LIMIT 1");
@@ -118,6 +115,7 @@ if ($action === "login") {
     unset($_SESSION['old_login_email']);
 
     $_SESSION['user_id'] = $uid;
+    $_SESSION['username'] = $username;   // ←———— LISÄTTY
     $_SESSION['success'] = "Tervetuloa, $username!";
     header("Location: index.php");
     exit;
