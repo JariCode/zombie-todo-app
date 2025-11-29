@@ -19,7 +19,7 @@ if (isset($_SESSION['user_id'])) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Zombi To-Do</title>
+    <title>Zombie To-Do</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -134,7 +134,7 @@ if (isset($_SESSION['user_id'])) {
 <div class="todo-box">
 
     <form class="input-area" action="actions.php?action=add" method="POST">
-        <input type="text" name="task" placeholder="Lisää tehtävä... ennen kuin kuolleet nousevat!" required>
+        <input type="text" name="task" placeholder="Lisää tehtävä... ennen kuin kuolleet nousevat!" required autocomplete="off">
         <button type="submit">Lisää</button>
     </form>
 
