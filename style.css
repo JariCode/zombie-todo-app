@@ -9,6 +9,7 @@ body {
 
 /* Zombi-kortin wrapper */
 .container {
+    width: 100%;
     max-width: 600px;
     margin: 20px auto 40px auto;
     background: rgba(0, 0, 0, 0.75);
@@ -232,19 +233,18 @@ button:hover {
 }
 
 .header-bar > span {
-    margin-top: 0.7rem;
+    margin-top: 0.5rem;
     font-size: 1.2rem;
     font-weight: bold;
     color: #ff4444;
     text-shadow: 1px 1px black;
 }
 
-.logout-link {
+.header-bar > .logout-link {
     color: #ff6666;
     text-decoration: none;
     font-size: 1.1rem;
-    margin-left: 10px;
-    float: none; /* Ei saa kellua */
+    margin-top: 0.2rem;
 }
 
 .logout-link:hover {
@@ -255,6 +255,8 @@ button:hover {
 /*Hyväksy käyttöehdot */
 .checkbox-wrapper {
     margin: 10px 0 15px 0;
+    word-wrap: break-word;
+    white-space: normal;
 }
 
 /* Yhdistetty label + checkbox riville */
@@ -265,6 +267,8 @@ button:hover {
     color: #ffbbbb;
     font-size: 0.9rem;
     text-shadow: 1px 1px black;
+     display: block; /* <-- tärkein */
+    line-height: 1.4;
 }
 
 /* Checkbox-tyyli */
@@ -284,4 +288,39 @@ button:hover {
 
 .checkbox-wrapper a:hover {
     color: #ff6b6b;
+}
+
+@media (max-width: 480px) {
+
+    .container {
+        width: 80%;
+        margin: 10px auto 20px auto;
+        padding: 15px;
+    }
+
+    .auth-box {
+        padding: 15px;
+    }
+
+    .checkbox-wrapper label {
+        display: block;
+    }
+
+    .checkbox-wrapper a {
+        display: inline-block;
+        margin-top: 4px;
+    }
+
+    .header-bar > span {
+    margin-top: 0.5rem;
+    font-size: 0.9rem;
+    font-weight: bold;
+    color: #ff4444;
+    text-shadow: 1px 1px black;
+}
+
+.header-bar > .logout-link {
+    font-size: 0.8rem;
+    margin-top: 0.3rem;
+}
 }

@@ -18,6 +18,7 @@ if (isset($_SESSION['user_id'])) {
 <html lang="fi">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Zombi To-Do</title>
     <link rel="stylesheet" href="style.css">
 </head>
