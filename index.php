@@ -79,6 +79,19 @@ if (isset($_SESSION['user_id'])) {
             <label>Salasana</label>
             <input type="password" name="password" placeholder="********" required autocomplete="off">
 
+                <!-- Ruksi tietosuojaselosteen hyväksymiseen -->
+        <div class="checkbox-wrapper">
+            <label for="acceptPrivacyPolicy" class="checkbox-label">
+                <input type="checkbox" id="acceptPrivacyPolicy" name="terms" required>
+                Hyväksyn 
+                <a href="assets/doc/Kayttoehdot.pdf" target="_blank">käyttöehdot</a> ja 
+                <a href="assets/doc/Tietosuojaseloste.pdf" target="_blank">tietosuojaselosteen</a>.
+            </label>
+        </div>
+
+
+
+
             <button type="submit">Rekisteröidy 🧟‍♂️</button>
         </form>
     </div>
