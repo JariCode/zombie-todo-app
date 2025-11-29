@@ -105,8 +105,15 @@ button:hover {
     align-items: center;
 }
 
+
+/* Poista yliviivaus koko taskista */
 .task.done {
     color: #775555;
+    text-decoration: none;
+}
+
+/* Tee yliviivaus vain tehtävän tekstille */
+.task.done .task-text {
     text-decoration: line-through;
 }
 

@@ -178,14 +178,19 @@ if (isset($_SESSION['user_id'])) {
     <div class="task-list">
         <?php while ($task = $doneTasks->fetch_assoc()): ?>
             <div class="task done">
-                <span><?= clean($task['text']) ?></span>
 
+                <!-- TEHTÄVÄN TEKSTI, JOLLE TULEE YLIVIVAUS -->
+                <span class="task-text"><?= clean($task['text']) ?></span>
+
+                <!-- AIKALEIMAT (EI YLIVIVAUSTA) -->
                 <small class="timestamp">
                     Lisätty: <?= date("d.m.Y H:i", strtotime($task['created_at'])) ?>
                     <?php if (!empty($task['started_at'])): ?>
                         <br>Aloitettu: <?= date("d.m.Y H:i", strtotime($task['started_at'])) ?>
                     <?php endif; ?>
-                    <br>Valmis: <?= date("d.m.Y H:i", strtotime($task['done_at'])) ?>
+                    <?php if (!empty($task['done_at'])): ?>
+                        <br>Valmis: <?= date("d.m.Y H:i", strtotime($task['done_at'])) ?>
+                    <?php endif; ?>
                 </small>
 
                 <div class="actions">
