@@ -31,6 +31,9 @@ if (isset($_SESSION['user_id'])) {
 
     <img src="assets/img/header-zombie.png.png" class="hero">
 
+    <div class="wip-banner">🧠 WORK IN PROGRESS… BRAINS LOADING 🩸</div>
+
+
     <!-- VIRHE- JA ONNISTUMISVIESTIT -->
     <?php if (!empty($_SESSION['error'])): ?>
         <div class="auth-error"><?= clean($_SESSION['error']); unset($_SESSION['error']); ?></div>
@@ -123,6 +126,7 @@ if (isset($_SESSION['user_id'])) {
             <a href="actions.php?action=logout" class="logout-link">Kirjaudu ulos ❌</a>
         </div>
         <h1>ZOMBIE TO-DO</h1>
+
 <!-- =========================== -->
 <!--        TODO-APPLICATION     -->
 <!-- =========================== -->
@@ -167,6 +171,7 @@ if (isset($_SESSION['user_id'])) {
 
                 <div class="actions">
                     <a href="#" data-action="done" data-id="<?= $task['id'] ?>">✓</a>
+                    <a href="#" data-action="undo_start" data-id="<?= $task['id'] ?>">☠️</a>
                     <a href="#" data-action="delete" data-id="<?= $task['id'] ?>">🗑</a>
                 </div>
             </div>
@@ -179,10 +184,8 @@ if (isset($_SESSION['user_id'])) {
         <?php while ($task = $doneTasks->fetch_assoc()): ?>
             <div class="task done">
 
-                <!-- TEHTÄVÄN TEKSTI, JOLLE TULEE YLIVIVAUS -->
                 <span class="task-text"><?= clean($task['text']) ?></span>
 
-                <!-- AIKALEIMAT (EI YLIVIVAUSTA) -->
                 <small class="timestamp">
                     Lisätty: <?= date("d.m.Y H:i", strtotime($task['created_at'])) ?>
                     <?php if (!empty($task['started_at'])): ?>
@@ -194,11 +197,13 @@ if (isset($_SESSION['user_id'])) {
                 </small>
 
                 <div class="actions">
+                    <a href="#" data-action="undo_done" data-id="<?= $task['id'] ?>">☠️</a>
                     <a href="#" data-action="delete" data-id="<?= $task['id'] ?>">🗑</a>
                 </div>
             </div>
         <?php endwhile; ?>
     </div>
+
 
 </div>
 

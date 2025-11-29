@@ -240,7 +240,7 @@ button:hover {
 }
 
 .header-bar > span {
-    margin-top: 0.5rem;
+    margin-top: 15px;
     font-size: 1.2rem;
     font-weight: bold;
     color: #ff4444;
@@ -251,7 +251,7 @@ button:hover {
     color: #ff6666;
     text-decoration: none;
     font-size: 1.1rem;
-    margin-top: 0.2rem;
+    margin-top: 12px;
 }
 
 .logout-link:hover {
@@ -299,11 +299,29 @@ button:hover {
 
 .timestamp {
     display: block;
-    margin-top: 6px;
+    margin: 6px;
     font-size: 0.75rem;
     color: #aa8888;
     text-shadow: none;
+ 
 }
+
+.wip-banner {
+    text-align: center;
+    font-family: Impact, sans-serif;
+    font-size: 1.4rem;
+    letter-spacing: 2px;
+    color: #ff3b3b;
+    margin: 5px 0 20px 0;
+    text-shadow: 2px 2px black;
+    animation: flicker 1.8s infinite;
+}
+
+@keyframes flicker {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.55; }
+}
+
 
 
 @media (max-width: 480px) {
@@ -328,15 +346,29 @@ button:hover {
     }
 
     .header-bar > span {
-    margin-top: 0.5rem;
     font-size: 0.9rem;
-    font-weight: bold;
-    color: #ff4444;
-    text-shadow: 1px 1px black;
 }
 
 .header-bar > .logout-link {
     font-size: 0.8rem;
-    margin-top: 0.3rem;
 }
+
+   .task {
+        flex-direction: column;
+        align-items: flex-start; /* vasemman laidan linjaus */
+        gap: 8px; /* pieni väli tekstin ja ikonien väliin */
+    }
+
+    .actions {
+        display: flex;
+        width: 100%;
+        justify-content: flex-start;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .actions a {
+        margin: 0;
+        font-size: 1.4rem;
+    }
 }

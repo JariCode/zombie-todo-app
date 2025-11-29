@@ -13,7 +13,7 @@ if (!isset($_SESSION['user_id'])) {
 $uid = intval($_SESSION['user_id']);
 
 // -------------------------
-// Haetaan käyttäjäkohtaiset taskit (AIKALEIMOILLA)
+// Haetaan tehtävät aikaleimoilla
 // -------------------------
 $notStarted = $conn->prepare("SELECT id, text, created_at FROM tasks WHERE user_id=? AND status='not_started' ORDER BY id DESC");
 $notStarted->bind_param("i", $uid);
@@ -38,6 +38,7 @@ $doneTasksRes = $doneTasks->get_result();
 <div class="task-list">
 <?php while ($task = $notStartedRes->fetch_assoc()): ?>
     <div class="task">
+
         <span class="task-text"><?= htmlspecialchars($task['text']) ?></span>
 
         <small class="timestamp">
@@ -48,6 +49,7 @@ $doneTasksRes = $doneTasks->get_result();
             <a href="#" data-action="start" data-id="<?= $task['id'] ?>">⚔️</a>
             <a href="#" data-action="delete" data-id="<?= $task['id'] ?>">🗑</a>
         </div>
+
     </div>
 <?php endwhile; ?>
 </div>
@@ -59,19 +61,20 @@ $doneTasksRes = $doneTasks->get_result();
 <div class="task-list">
 <?php while ($task = $inProgressRes->fetch_assoc()): ?>
     <div class="task">
+
         <span class="task-text"><?= htmlspecialchars($task['text']) ?></span>
 
         <small class="timestamp">
             Lisätty: <?= date("d.m.Y H:i", strtotime($task['created_at'])) ?>
-            <?php if (!empty($task['started_at'])): ?>
-                <br>Aloitettu: <?= date("d.m.Y H:i", strtotime($task['started_at'])) ?>
-            <?php endif; ?>
+            <br>Aloitettu: <?= date("d.m.Y H:i", strtotime($task['started_at'])) ?>
         </small>
 
         <div class="actions">
             <a href="#" data-action="done" data-id="<?= $task['id'] ?>">✓</a>
+            <a href="#" data-action="undo_not_started" data-id="<?= $task['id'] ?>">☠️</a>
             <a href="#" data-action="delete" data-id="<?= $task['id'] ?>">🗑</a>
         </div>
+
     </div>
 <?php endwhile; ?>
 </div>
@@ -83,7 +86,7 @@ $doneTasksRes = $doneTasks->get_result();
 <div class="task-list">
 <?php while ($task = $doneTasksRes->fetch_assoc()): ?>
     <div class="task done">
-        
+
         <span class="task-text"><?= htmlspecialchars($task['text']) ?></span>
 
         <small class="timestamp">
@@ -97,8 +100,10 @@ $doneTasksRes = $doneTasks->get_result();
         </small>
 
         <div class="actions">
+            <a href="#" data-action="undo_in_progress" data-id="<?= $task['id'] ?>">☠️</a>
             <a href="#" data-action="delete" data-id="<?= $task['id'] ?>">🗑</a>
         </div>
+
     </div>
 <?php endwhile; ?>
 </div>

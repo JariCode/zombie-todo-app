@@ -192,6 +192,36 @@ if ($action === "done" && $id > 0) {
 }
 
 /* ============================================================
+   UNDO: Käynnissä → Ei aloitettu
+============================================================ */
+if ($action === "undo_not_started" && $id > 0) {
+    $stmt = $conn->prepare("
+        UPDATE tasks
+        SET status='not_started', started_at = NULL
+        WHERE id=? AND user_id=?
+    ");
+    $stmt->bind_param("ii", $id, $user_id);
+    $stmt->execute();
+    echo json_encode(['success' => true]);
+    exit;
+}
+
+/* ============================================================
+   UNDO: Valmis → Käynnissä
+============================================================ */
+if ($action === "undo_in_progress" && $id > 0) {
+    $stmt = $conn->prepare("
+        UPDATE tasks
+        SET status='in_progress', done_at = NULL
+        WHERE id=? AND user_id=?
+    ");
+    $stmt->bind_param("ii", $id, $user_id);
+    $stmt->execute();
+    echo json_encode(['success' => true]);
+    exit;
+}
+
+/* ============================================================
    DELETE TASK
 ============================================================ */
 if ($action === "delete" && $id > 0) {
@@ -204,3 +234,4 @@ if ($action === "delete" && $id > 0) {
 
 echo json_encode(['success' => false]);
 exit;
+?>
