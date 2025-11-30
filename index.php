@@ -224,13 +224,24 @@ if (isset($_SESSION['user_id'])) {
 <?php if (isset($_SESSION['user_id'])): ?>
 <script>
 async function refreshTasks() {
-    // Tallenna scrollaus
     const prevScroll = window.scrollY;
-
-    const html = await fetch("app/partial-tasks.php").then(res => res.text());
     const box = document.querySelector(".todo-box");
+
+    // 🔥 SAFARI FIX: Freeze layout ennen DOM-päivitystä
+    const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+    let frozenHeight = null;
+
+    if (isSafari) {
+        frozenHeight = box.offsetHeight;
+        box.style.height = frozenHeight + "px";
+        box.style.overflow = "hidden";
+    }
+
+    // Hae uusi sisältö
+    const html = await fetch("app/partial-tasks.php").then(res => res.text());
     const form = box.querySelector("form").outerHTML;
 
+    // Korvataan sisältö
     box.innerHTML = form + html;
 
     attachTaskEvents();
@@ -238,8 +249,24 @@ async function refreshTasks() {
     setupFormSubmit();
     focusInput();
 
-    // Palauta scrollauspaikka
+    // 🔥 Chrome / Edge / Firefox
     window.scrollTo(0, prevScroll);
+
+    // 🔥 Firefox & iOS Safari
+    requestAnimationFrame(() => {
+        window.scrollTo(0, prevScroll);
+
+        // 🔥 macOS Safari tarvitsee vielä yhden frame-loopin
+        requestAnimationFrame(() => {
+            window.scrollTo(0, prevScroll);
+
+            // 🔥 Vapauta layout vasta kolmannen frame jälkeen
+            if (isSafari) {
+                box.style.height = "";
+                box.style.overflow = "";
+            }
+        });
+    });
 }
 
 
