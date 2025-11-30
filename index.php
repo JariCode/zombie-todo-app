@@ -224,16 +224,24 @@ if (isset($_SESSION['user_id'])) {
 <?php if (isset($_SESSION['user_id'])): ?>
 <script>
 async function refreshTasks() {
+    // Tallenna scrollaus
+    const prevScroll = window.scrollY;
+
     const html = await fetch("app/partial-tasks.php").then(res => res.text());
     const box = document.querySelector(".todo-box");
     const form = box.querySelector("form").outerHTML;
 
     box.innerHTML = form + html;
+
     attachTaskEvents();
     setupEnterKey();
     setupFormSubmit();
     focusInput();
+
+    // Palauta scrollauspaikka
+    window.scrollTo(0, prevScroll);
 }
+
 
 function attachTaskEvents() {
     document.querySelectorAll(".actions a").forEach(a => {
