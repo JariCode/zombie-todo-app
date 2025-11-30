@@ -30,7 +30,6 @@ $doneTasks->bind_param("i", $uid);
 $doneTasks->execute();
 $doneTasksRes = $doneTasks->get_result();
 ?>
-
 <!-- ============================= -->
 <!--      EI ALOITETUT            -->
 <!-- ============================= -->
@@ -39,11 +38,13 @@ $doneTasksRes = $doneTasks->get_result();
 <?php while ($task = $notStartedRes->fetch_assoc()): ?>
     <div class="task">
 
-        <span class="task-text"><?= htmlspecialchars($task['text']) ?></span>
+        <div class="task-info">
+            <span class="task-text"><?= htmlspecialchars($task['text']) ?></span>
 
-        <small class="timestamp">
-            Lisätty: <?= date("d.m.Y H:i", strtotime($task['created_at'])) ?>
-        </small>
+            <small class="timestamp">
+                Lisätty: <?= date("d.m.Y H:i", strtotime($task['created_at'])) ?>
+            </small>
+        </div>
 
         <div class="actions">
             <a href="#" data-action="start" data-id="<?= $task['id'] ?>">⚔️</a>
@@ -54,6 +55,7 @@ $doneTasksRes = $doneTasks->get_result();
 <?php endwhile; ?>
 </div>
 
+
 <!-- ============================= -->
 <!--         KÄYNNISSÄ             -->
 <!-- ============================= -->
@@ -62,12 +64,14 @@ $doneTasksRes = $doneTasks->get_result();
 <?php while ($task = $inProgressRes->fetch_assoc()): ?>
     <div class="task">
 
-        <span class="task-text"><?= htmlspecialchars($task['text']) ?></span>
+        <div class="task-info">
+            <span class="task-text"><?= htmlspecialchars($task['text']) ?></span>
 
-        <small class="timestamp">
-            Lisätty: <?= date("d.m.Y H:i", strtotime($task['created_at'])) ?>
-            <br>Aloitettu: <?= date("d.m.Y H:i", strtotime($task['started_at'])) ?>
-        </small>
+            <small class="timestamp">
+                Lisätty: <?= date("d.m.Y H:i", strtotime($task['created_at'])) ?>
+                <br>Aloitettu: <?= date("d.m.Y H:i", strtotime($task['started_at'])) ?>
+            </small>
+        </div>
 
         <div class="actions">
             <a href="#" data-action="done" data-id="<?= $task['id'] ?>">✓</a>
@@ -79,6 +83,7 @@ $doneTasksRes = $doneTasks->get_result();
 <?php endwhile; ?>
 </div>
 
+
 <!-- ============================= -->
 <!--           VALMIIT            -->
 <!-- ============================= -->
@@ -87,17 +92,19 @@ $doneTasksRes = $doneTasks->get_result();
 <?php while ($task = $doneTasksRes->fetch_assoc()): ?>
     <div class="task done">
 
-        <span class="task-text"><?= htmlspecialchars($task['text']) ?></span>
+        <div class="task-info">
+            <span class="task-text"><?= htmlspecialchars($task['text']) ?></span>
 
-        <small class="timestamp">
-            Lisätty: <?= date("d.m.Y H:i", strtotime($task['created_at'])) ?>
-            <?php if (!empty($task['started_at'])): ?>
-                <br>Aloitettu: <?= date("d.m.Y H:i", strtotime($task['started_at'])) ?>
-            <?php endif; ?>
-            <?php if (!empty($task['done_at'])): ?>
-                <br>Valmis: <?= date("d.m.Y H:i", strtotime($task['done_at'])) ?>
-            <?php endif; ?>
-        </small>
+            <small class="timestamp">
+                Lisätty: <?= date("d.m.Y H:i", strtotime($task['created_at'])) ?>
+                <?php if (!empty($task['started_at'])): ?>
+                    <br>Aloitettu: <?= date("d.m.Y H:i", strtotime($task['started_at'])) ?>
+                <?php endif; ?>
+                <?php if (!empty($task['done_at'])): ?>
+                    <br>Valmis: <?= date("d.m.Y H:i", strtotime($task['done_at'])) ?>
+                <?php endif; ?>
+            </small>
+        </div>
 
         <div class="actions">
             <a href="#" data-action="undo_in_progress" data-id="<?= $task['id'] ?>">☠️</a>

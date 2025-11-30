@@ -324,6 +324,38 @@ button:hover {
     50% { opacity: 0.55; }
 }
 
+/* --- DESKTOP TASK LAYOUT --- */
+@media (min-width: 481px) {
+
+    .task {
+        display: flex;
+        flex-direction: row;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 10px;
+        padding-right: 5px;
+    }
+
+    /* Tekstin + timestampin oma sarake */
+    .task-info {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+        word-break: break-word;
+    }
+
+    /* Action-ikonit omaan sarakkeeseen */
+    .actions {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 12px;
+        flex-shrink: 0;       /* EI KUTISTU */
+        white-space: nowrap;  /* EI RIVINVAIHTOA */
+    }
+}
 
 
 @media (max-width: 480px) {
