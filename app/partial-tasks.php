@@ -1,6 +1,9 @@
 <?php
+
 session_start();
-require 'db.php';
+
+// Ladataan tietokanta /app-kansiosta
+require __DIR__ . '/db.php';
 
 // -------------------------
 // Varmista kirjautuminen
@@ -13,23 +16,44 @@ if (!isset($_SESSION['user_id'])) {
 $uid = intval($_SESSION['user_id']);
 
 // -------------------------
-// Haetaan tehtävät aikaleimoilla
+// Haetaan tehtävät
 // -------------------------
-$notStarted = $conn->prepare("SELECT id, text, created_at FROM tasks WHERE user_id=? AND status='not_started' ORDER BY id DESC");
+
+// Ei aloitettu
+$notStarted = $conn->prepare("
+    SELECT id, text, created_at 
+    FROM tasks 
+    WHERE user_id=? AND status='not_started'
+    ORDER BY id DESC
+");
 $notStarted->bind_param("i", $uid);
 $notStarted->execute();
 $notStartedRes = $notStarted->get_result();
 
-$inProgress = $conn->prepare("SELECT id, text, created_at, started_at FROM tasks WHERE user_id=? AND status='in_progress' ORDER BY id DESC");
+// Käynnissä
+$inProgress = $conn->prepare("
+    SELECT id, text, created_at, started_at 
+    FROM tasks 
+    WHERE user_id=? AND status='in_progress'
+    ORDER BY id DESC
+");
 $inProgress->bind_param("i", $uid);
 $inProgress->execute();
 $inProgressRes = $inProgress->get_result();
 
-$doneTasks = $conn->prepare("SELECT id, text, created_at, started_at, done_at FROM tasks WHERE user_id=? AND status='done' ORDER BY id DESC");
+// Valmiit
+$doneTasks = $conn->prepare("
+    SELECT id, text, created_at, started_at, done_at 
+    FROM tasks 
+    WHERE user_id=? AND status='done'
+    ORDER BY id DESC
+");
 $doneTasks->bind_param("i", $uid);
 $doneTasks->execute();
 $doneTasksRes = $doneTasks->get_result();
 ?>
+
+
 <!-- ============================= -->
 <!--      EI ALOITETUT            -->
 <!-- ============================= -->
@@ -55,7 +79,6 @@ $doneTasksRes = $doneTasks->get_result();
 <?php endwhile; ?>
 </div>
 
-
 <!-- ============================= -->
 <!--         KÄYNNISSÄ             -->
 <!-- ============================= -->
@@ -75,7 +98,7 @@ $doneTasksRes = $doneTasks->get_result();
 
         <div class="actions">
             <a href="#" data-action="done" data-id="<?= $task['id'] ?>">✓</a>
-            <a href="#" data-action="undo_not_started" data-id="<?= $task['id'] ?>">☠️</a>
+            <a href="#" data-action="undo_start" data-id="<?= $task['id'] ?>">☠️</a>
             <a href="#" data-action="delete" data-id="<?= $task['id'] ?>">🗑</a>
         </div>
 
@@ -107,7 +130,7 @@ $doneTasksRes = $doneTasks->get_result();
         </div>
 
         <div class="actions">
-            <a href="#" data-action="undo_in_progress" data-id="<?= $task['id'] ?>">☠️</a>
+            <a href="#" data-action="undo_done" data-id="<?= $task['id'] ?>">☠️</a>
             <a href="#" data-action="delete" data-id="<?= $task['id'] ?>">🗑</a>
         </div>
 

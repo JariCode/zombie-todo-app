@@ -1,4 +1,8 @@
 <?php
+
+// Vältetään turhat mysqli-varoitukset (esim. IF NOT EXISTS)
+mysqli_report(MYSQLI_REPORT_OFF);
+
 // ===========================================================
 // 1) LATAA .ENV TIEDOSTO TURVALLISESTI
 // ===========================================================
@@ -51,7 +55,7 @@ $conn->query("
 $conn->select_db($dbname);
 
 // ===========================================================
-// 6) LUODAAN USERS -TAULU (UUTENA JA PUHTAANA)
+// 6) LUODAAN USERS-TAULU
 // ===========================================================
 $conn->query("
 CREATE TABLE IF NOT EXISTS users (
@@ -64,14 +68,15 @@ CREATE TABLE IF NOT EXISTS users (
 ");
 
 // ===========================================================
-// 7) LUODAAN TASKS -TAULU (KÄYTTÄJÄKOHTAINEN, VIITEAVAIN)
+// 7) LUODAAN TASKS-TAULU
 // ===========================================================
 $conn->query("
 CREATE TABLE IF NOT EXISTS tasks (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
     text VARCHAR(255) NOT NULL,
-    status ENUM('not_started', 'in_progress', 'done') NOT NULL DEFAULT 'not_started',
+    status ENUM('not_started', 'in_progress', 'done') 
+           NOT NULL DEFAULT 'not_started',
 
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     started_at DATETIME NULL,
@@ -79,13 +84,12 @@ CREATE TABLE IF NOT EXISTS tasks (
 
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
 ");
 
 // ===========================================================
-// 8) INDEKSIT SUORITUSKYVYN PARANTAMISEEN
+// 8) INDEKSIT SUORITUSKYKYYN
 // ===========================================================
-$conn->query("CREATE INDEX IF NOT EXISTS idx_user_status ON tasks (user_id, status)");
-$conn->query("CREATE INDEX IF NOT EXISTS idx_created ON tasks (created_at)");
+$conn->query("CREATE INDEX idx_user_status ON tasks (user_id, status)");
+$conn->query("CREATE INDEX idx_created ON tasks (created_at)");
 
 ?>

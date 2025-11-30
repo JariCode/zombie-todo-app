@@ -1,6 +1,6 @@
 <?php
 session_start();
-require 'db.php';
+require __DIR__ . '/app/db.php';
 
 // Turvallinen tulostus
 function clean($v) { return htmlspecialchars($v ?? '', ENT_QUOTES, 'UTF-8'); }
@@ -9,9 +9,9 @@ function clean($v) { return htmlspecialchars($v ?? '', ENT_QUOTES, 'UTF-8'); }
 if (isset($_SESSION['user_id'])) {
     $uid = intval($_SESSION['user_id']);
 
-    $notStarted = $conn->query("SELECT * FROM tasks WHERE user_id=$uid AND status='not_started' ORDER BY id DESC");
-    $inProgress = $conn->query("SELECT * FROM tasks WHERE user_id=$uid AND status='in_progress' ORDER BY id DESC");
-    $doneTasks  = $conn->query("SELECT * FROM tasks WHERE user_id=$uid AND status='done' ORDER BY id DESC");
+    $notStarted  = $conn->query("SELECT * FROM tasks WHERE user_id=$uid AND status='not_started' ORDER BY id DESC");
+    $inProgress  = $conn->query("SELECT * FROM tasks WHERE user_id=$uid AND status='in_progress' ORDER BY id DESC");
+    $doneTasks   = $conn->query("SELECT * FROM tasks WHERE user_id=$uid AND status='done' ORDER BY id DESC");
 }
 ?>
 <!DOCTYPE html>
@@ -33,7 +33,6 @@ if (isset($_SESSION['user_id'])) {
 
     <div class="wip-banner">🧠 WORK IN PROGRESS… BRAINS LOADING 🩸</div>
 
-
     <!-- VIRHE- JA ONNISTUMISVIESTIT -->
     <?php if (!empty($_SESSION['error'])): ?>
         <div class="auth-error"><?= clean($_SESSION['error']); unset($_SESSION['error']); ?></div>
@@ -50,7 +49,7 @@ if (isset($_SESSION['user_id'])) {
     <div class="auth-box">
         <h2 class="auth-title">Kirjaudu sisään</h2>
 
-        <form method="POST" action="actions.php?action=login" autocomplete="off">
+        <form method="POST" action="app/actions.php?action=login" autocomplete="off">
 
             <label>Sähköposti</label>
             <input type="email"
@@ -76,7 +75,7 @@ if (isset($_SESSION['user_id'])) {
     <div class="auth-box">
         <h2 class="auth-title">Rekisteröidy</h2>
 
-        <form method="POST" action="actions.php?action=register" autocomplete="off">
+        <form method="POST" action="app/actions.php?action=register" autocomplete="off">
 
             <label>Käyttäjänimi</label>
             <input type="text"
@@ -97,7 +96,6 @@ if (isset($_SESSION['user_id'])) {
             <label>Salasana</label>
             <input type="password" name="password" placeholder="********" required autocomplete="off">
 
-            <!-- Hyväksyntäruksi -->
             <div class="checkbox-wrapper">
                 <label for="acceptPrivacyPolicy" class="checkbox-label">
                     <input type="checkbox" id="acceptPrivacyPolicy" name="terms" required>
@@ -123,8 +121,9 @@ if (isset($_SESSION['user_id'])) {
 
         <div class="header-bar">
             <span class="welcome-text">Tervetuloa, <?= clean($_SESSION['username'] ?? '') ?>!</span>
-            <a href="actions.php?action=logout" class="logout-link">Kirjaudu ulos ❌</a>
+            <a href="app/actions.php?action=logout" class="logout-link">Kirjaudu ulos ❌</a>
         </div>
+
         <h1>ZOMBIE TO-DO</h1>
 
 <!-- =========================== -->
@@ -133,7 +132,7 @@ if (isset($_SESSION['user_id'])) {
 
 <div class="todo-box">
 
-    <form class="input-area" action="actions.php?action=add" method="POST">
+    <form class="input-area" action="app/actions.php?action=add" method="POST">
         <input type="text" name="task" placeholder="Lisää tehtävä... ennen kuin kuolleet nousevat!" required autocomplete="off">
         <button type="submit">Lisää</button>
     </form>
@@ -186,7 +185,6 @@ if (isset($_SESSION['user_id'])) {
     <?php endwhile; ?>
     </div>
 
-
     <!-- VALMIIT -->
     <h2 class="section-title done-title">🪦 Valmiit</h2>
     <div class="task-list">
@@ -216,20 +214,16 @@ if (isset($_SESSION['user_id'])) {
     <?php endwhile; ?>
     </div>
 
+</div> <!-- /todo-box -->
 
+<?php endif; ?>
 
-
-</div>
-
-
-    <?php endif; ?>
-
-</div>
+</div> <!-- /container -->
 
 <?php if (isset($_SESSION['user_id'])): ?>
 <script>
 async function refreshTasks() {
-    const html = await fetch("partial-tasks.php").then(res => res.text());
+    const html = await fetch("app/partial-tasks.php").then(res => res.text());
     const box = document.querySelector(".todo-box");
     const form = box.querySelector("form").outerHTML;
 
@@ -246,7 +240,7 @@ function attachTaskEvents() {
             e.preventDefault();
             const action = a.dataset.action;
             const id     = a.dataset.id;
-            await fetch(`actions.php?action=${action}&id=${id}`);
+            await fetch(`app/actions.php?action=${action}&id=${id}`);
             refreshTasks();
         });
     });
@@ -271,7 +265,7 @@ function setupFormSubmit() {
     form.addEventListener("submit", async (e) => {
         e.preventDefault();
         const formData = new FormData(e.target);
-        await fetch("actions.php?action=add", { method: "POST", body: formData });
+        await fetch("app/actions.php?action=add", { method: "POST", body: formData });
         e.target.reset();
         refreshTasks();
     });
