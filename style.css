@@ -126,7 +126,18 @@ button:hover {
     text-decoration: none;
 }
 
-.actions a:nth-child(1) {
+.actions button {
+    color: #ff4444;
+    margin-left: 12px;
+    font-size: 1.2rem;
+    text-decoration: none;
+    background: transparent;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+}
+
+.actions a:nth-child(1), .actions button:nth-child(1) {
     color: #44ff44;
 }
 
@@ -415,12 +426,16 @@ button:hover {
         gap: 10px;
     }
 
-    .actions a {
+    .actions a, .actions button {
         margin: 0;
         font-size: 1.4rem;
     }
 .todo-box .input-area input::placeholder {
     font-size: 0.6rem;
+}
+
+.actions button:focus {
+    outline: none;
 }
 
 }

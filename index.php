@@ -153,8 +153,8 @@ if (isset($_SESSION['user_id'])) {
             </div>
 
             <div class="actions">
-                <a href="#" data-action="start" data-id="<?= $task['id'] ?>">⚔️</a>
-                <a href="#" data-action="delete" data-id="<?= $task['id'] ?>">🗑</a>
+                <button type="button" data-action="start" data-id="<?= $task['id'] ?>">⚔️</button>
+                <button type="button" data-action="delete" data-id="<?= $task['id'] ?>">🗑</button>
             </div>
 
         </div>
@@ -177,9 +177,9 @@ if (isset($_SESSION['user_id'])) {
             </div>
 
             <div class="actions">
-                <a href="#" data-action="done" data-id="<?= $task['id'] ?>">✓</a>
-                <a href="#" data-action="undo_start" data-id="<?= $task['id'] ?>">☠️</a>
-                <a href="#" data-action="delete" data-id="<?= $task['id'] ?>">🗑</a>
+                <button type="button" data-action="done" data-id="<?= $task['id'] ?>">✓</button>
+                <button type="button" data-action="undo_start" data-id="<?= $task['id'] ?>">☠️</button>
+                <button type="button" data-action="delete" data-id="<?= $task['id'] ?>">🗑</button>
             </div>
 
         </div>
@@ -207,8 +207,8 @@ if (isset($_SESSION['user_id'])) {
             </div>
 
             <div class="actions">
-                <a href="#" data-action="undo_done" data-id="<?= $task['id'] ?>">☠️</a>
-                <a href="#" data-action="delete" data-id="<?= $task['id'] ?>">🗑</a>
+                <button type="button" data-action="undo_done" data-id="<?= $task['id'] ?>">☠️</button>
+                <button type="button" data-action="delete" data-id="<?= $task['id'] ?>">🗑</button>
             </div>
 
         </div>
@@ -247,19 +247,30 @@ async function refreshTasks() {
     attachTaskEvents();
     setupEnterKey();
     setupFormSubmit();
-    focusInput();
+    // Focus without scrolling when possible
+    const input = document.querySelector('.input-area input');
+    if (input) {
+        try { input.focus({ preventScroll: true }); } catch (err) { input.focus(); }
+    }
 
-    // 🔥 Chrome / Edge / Firefox
-    window.scrollTo(0, prevScroll);
+    // 🔥 Unfreeze Safari layout
+    if (isSafari) {
+        box.style.height = '';
+        box.style.overflow = '';
+    }
+
+    // 🔥 Chrome / Edge / Firefox: Restore scroll after UI settled
+    requestAnimationFrame(() => requestAnimationFrame(() => window.scrollTo(0, prevScroll)));
 
 }
 
 function attachTaskEvents() {
-    document.querySelectorAll(".actions a").forEach(a => {
-        a.addEventListener("click", async (e) => {
+    document.querySelectorAll('.actions a, .actions button').forEach(el => {
+        el.addEventListener('click', async (e) => {
             e.preventDefault();
-            const action = a.dataset.action;
-            const id     = a.dataset.id;
+            e.stopPropagation();
+            const action = el.dataset.action;
+            const id     = el.dataset.id;
             await fetch(`app/actions.php?action=${action}&id=${id}`);
             refreshTasks();
         });
@@ -293,7 +304,12 @@ function setupFormSubmit() {
 
 function focusInput() {
     const input = document.querySelector(".input-area input");
-    if (input) input.focus();
+    if (!input) return;
+    try {
+        input.focus({ preventScroll: true });
+    } catch (err) {
+        input.focus();
+    }
 }
 
 attachTaskEvents();
