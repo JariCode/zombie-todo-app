@@ -252,23 +252,7 @@ async function refreshTasks() {
     // 🔥 Chrome / Edge / Firefox
     window.scrollTo(0, prevScroll);
 
-    // 🔥 Firefox & iOS Safari
-    requestAnimationFrame(() => {
-        window.scrollTo(0, prevScroll);
-
-        // 🔥 macOS Safari tarvitsee vielä yhden frame-loopin
-        requestAnimationFrame(() => {
-            window.scrollTo(0, prevScroll);
-
-            // 🔥 Vapauta layout vasta kolmannen frame jälkeen
-            if (isSafari) {
-                box.style.height = "";
-                box.style.overflow = "";
-            }
-        });
-    });
 }
-
 
 function attachTaskEvents() {
     document.querySelectorAll(".actions a").forEach(a => {
