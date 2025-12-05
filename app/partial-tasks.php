@@ -1,9 +1,23 @@
 <?php
+// ================================
+// partial-tasks.php
+//
+// Palauttaa tehtävälistan HTML:nä AJAX-pyyntöihin
+//
+// Turvallisuus:
+// - Vain kirjautunut käyttäjä pääsee tähän
+// - Kaikki SQL-kyselyt käyttävät prepared statements
+// - clean()/htmlspecialchars estää XSS:n
+// ================================
 
+require __DIR__ . '/session-config.php';
 session_start();
 
 // Ladataan tietokanta /app-kansiosta
 require __DIR__ . '/db.php';
+
+// Validoi session timeout
+validateSessionTimeout();
 
 // -------------------------
 // Varmista kirjautuminen

@@ -1,6 +1,22 @@
 <?php
+// ================================
+// Zombie To-Do -etusivu
+//
+// Turvallisuus:
+// - session_config.php asettaa turvalliset session asetukset
+// - session_start() aloittaa istunnon
+// - validateSessionTimeout() uloskirjaa passiiviset käyttäjät
+// - clean() funktio estää XSS-hyökkäykset
+// - Kaikki SQL-kyselyt käyttävät prepared statements (estää SQL-injektion)
+// - CSRF-token kaikissa lomakkeissa ja AJAX-toiminnoissa
+// ================================
+
+require __DIR__ . '/app/session-config.php';
 session_start();
 require __DIR__ . '/app/db.php';
+
+// Validoi session timeout
+validateSessionTimeout();
 
 // Turvallinen tulostus
 function clean($v) { return htmlspecialchars($v ?? '', ENT_QUOTES, 'UTF-8'); }
@@ -9,9 +25,20 @@ function clean($v) { return htmlspecialchars($v ?? '', ENT_QUOTES, 'UTF-8'); }
 if (isset($_SESSION['user_id'])) {
     $uid = intval($_SESSION['user_id']);
 
-    $notStarted  = $conn->query("SELECT * FROM tasks WHERE user_id=$uid AND status='not_started' ORDER BY id DESC");
-    $inProgress  = $conn->query("SELECT * FROM tasks WHERE user_id=$uid AND status='in_progress' ORDER BY id DESC");
-    $doneTasks   = $conn->query("SELECT * FROM tasks WHERE user_id=$uid AND status='done' ORDER BY id DESC");
+    $notStarted  = $conn->prepare("SELECT * FROM tasks WHERE user_id=? AND status='not_started' ORDER BY id DESC");
+    $notStarted->bind_param("i", $uid);
+    $notStarted->execute();
+    $notStarted = $notStarted->get_result();
+
+    $inProgress  = $conn->prepare("SELECT * FROM tasks WHERE user_id=? AND status='in_progress' ORDER BY id DESC");
+    $inProgress->bind_param("i", $uid);
+    $inProgress->execute();
+    $inProgress = $inProgress->get_result();
+
+    $doneTasks   = $conn->prepare("SELECT * FROM tasks WHERE user_id=? AND status='done' ORDER BY id DESC");
+    $doneTasks->bind_param("i", $uid);
+    $doneTasks->execute();
+    $doneTasks = $doneTasks->get_result();
 }
 ?>
 <!DOCTYPE html>
@@ -51,6 +78,7 @@ if (isset($_SESSION['user_id'])) {
         <h2 class="auth-title">Kirjaudu sisään</h2>
 
         <form method="POST" action="app/actions.php?action=login" autocomplete="off">
+            <input type="hidden" name="csrf_token" value="<?= clean(generateCSRFToken()) ?>">
 
             <label>Sähköposti</label>
             <input type="email"
@@ -77,6 +105,7 @@ if (isset($_SESSION['user_id'])) {
         <h2 class="auth-title">Rekisteröidy</h2>
 
         <form method="POST" action="app/actions.php?action=register" autocomplete="off">
+            <input type="hidden" name="csrf_token" value="<?= clean(generateCSRFToken()) ?>">
 
             <label>Käyttäjänimi</label>
             <input type="text"
@@ -134,6 +163,7 @@ if (isset($_SESSION['user_id'])) {
 <div class="todo-box">
 
     <form class="input-area" action="app/actions.php?action=add" method="POST">
+        <input type="hidden" name="csrf_token" value="<?= clean(generateCSRFToken()) ?>">
         <input type="text" name="task" placeholder="Lisää tehtävä... ennen kuin kuolleet nousevat!" required autocomplete="off">
         <button type="submit">Lisää</button>
     </form>
@@ -248,10 +278,12 @@ async function refreshTasks() {
     setupEnterKey();
     setupFormSubmit();
     // Focus without scrolling when possible
-    const input = document.querySelector('.input-area input');
-    if (input) {
-        try { input.focus({ preventScroll: true }); } catch (err) { input.focus(); }
-    }
+    setTimeout(() => {
+        const input = document.querySelector('.input-area input[name="task"]');
+        if (input) {
+            try { input.focus({ preventScroll: true }); } catch (err) { input.focus(); }
+        }
+    }, 0);
 
     // 🔥 Unfreeze Safari layout
     if (isSafari) {
@@ -271,7 +303,8 @@ function attachTaskEvents() {
             e.stopPropagation();
             const action = el.dataset.action;
             const id     = el.dataset.id;
-            await fetch(`app/actions.php?action=${action}&id=${id}`);
+            const csrf   = document.querySelector('input[name="csrf_token"]')?.value || '';
+            await fetch(`app/actions.php?action=${action}&id=${id}&csrf_token=${encodeURIComponent(csrf)}`);
             refreshTasks();
         });
     });
@@ -296,6 +329,8 @@ function setupFormSubmit() {
     form.addEventListener("submit", async (e) => {
         e.preventDefault();
         const formData = new FormData(e.target);
+        const csrf = document.querySelector('input[name="csrf_token"]')?.value;
+        if (csrf) formData.append('csrf_token', csrf);
         await fetch("app/actions.php?action=add", { method: "POST", body: formData });
         e.target.reset();
         refreshTasks();

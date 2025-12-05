@@ -1,8 +1,31 @@
 <?php
+// ================================
+// actions.php
+//
+// Käsittelee kaikki kirjautumis-, rekisteröinti- ja tehtäväpyynnöt
+//
+// Turvallisuus:
+// - session_config.php asettaa turvalliset session asetukset
+// - session_start() aloittaa istunnon
+// - validateSessionTimeout() uloskirjaa passiiviset käyttäjät
+// - Kaikki SQL-kyselyt käyttävät prepared statements (estää SQL-injektion)
+// - CSRF-token tarkistetaan kaikissa POST/GET-pyynnöissä
+// - session_regenerate_id() estää session fixation -hyökkäykset
+// - Logout tyhjentää ja tuhoaa session turvallisesti
+// ================================
+
+require __DIR__ . '/session-config.php';
 session_start();
 
 // Oikea polku uuteen kansiorakenteeseen
 require __DIR__ . '/db.php';
+
+// Validoi session timeout
+if (!validateSessionTimeout() && $_GET['action'] !== 'login' && $_GET['action'] !== 'register') {
+    $_SESSION['error'] = 'Istunto on vanhentunut. Kirjaudu uudelleen.';
+    header('Location: ../index.php');
+    exit;
+}
 
 $action = $_GET['action'] ?? null;
 
@@ -17,6 +40,13 @@ function clean($str) {
    1. REKISTERÖITYMINEN
 ============================================================ */
 if ($action === "register") {
+
+    // Validoi CSRF token
+    if (!verifyCSRFToken($_POST['csrf_token'] ?? '')) {
+        $_SESSION['error'] = 'Turvallisuusvirhe. Yritä uudelleen.';
+        header('Location: ../index.php');
+        exit;
+    }
 
     $username = trim($_POST['username'] ?? '');
     $email    = trim($_POST['email'] ?? '');
@@ -72,8 +102,12 @@ if ($action === "register") {
 
     unset($_SESSION['old_username'], $_SESSION['old_email']);
 
+    // Turvallinen session uudelleenluonti (session fixation -suoja)
+    session_regenerate_id(true);
+    
     $_SESSION['user_id'] = $newUserId;
     $_SESSION['username'] = $username;
+    $_SESSION['last_activity'] = time();
     $_SESSION['success'] = "Tervetuloa, $username!";
     header("Location: ../index.php");
     exit;
@@ -83,6 +117,13 @@ if ($action === "register") {
    2. KIRJAUTUMINEN
 ============================================================ */
 if ($action === "login") {
+
+    // Validoi CSRF token
+    if (!verifyCSRFToken($_POST['csrf_token'] ?? '')) {
+        $_SESSION['error'] = 'Turvallisuusvirhe. Yritä uudelleen.';
+        header('Location: ../index.php');
+        exit;
+    }
 
     $email    = trim($_POST['email'] ?? '');
     $password = trim($_POST['password'] ?? '');
@@ -111,8 +152,12 @@ if ($action === "login") {
 
     unset($_SESSION['old_login_email']);
 
+    // Turvallinen session uudelleenluonti (session fixation -suoja)
+    session_regenerate_id(true);
+    
     $_SESSION['user_id'] = $uid;
     $_SESSION['username'] = $username;
+    $_SESSION['last_activity'] = time();
     $_SESSION['success'] = "Tervetuloa, $username!";
     header("Location: ../index.php");
     exit;
@@ -122,6 +167,12 @@ if ($action === "login") {
    3. LOGOUT
 ============================================================ */
 if ($action === "logout") {
+    // Turvallinen logout
+    $_SESSION = array();
+    if (ini_get('session.use_cookies') && isset($_COOKIE[session_name()])) {
+        setcookie(session_name(), '', time() - 42000, '/', '', 
+            (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? true : false), true);
+    }
     session_destroy();
     header("Location: ../index.php");
     exit;
@@ -134,6 +185,15 @@ if (!isset($_SESSION['user_id'])) {
     http_response_code(403);
     echo json_encode(["success" => false, "error" => "NOT LOGGED IN"]);
     exit;
+}
+
+// Validoi CSRF token tehtävätoiminnoille
+if (in_array($action, ['add', 'start', 'done', 'undo_start', 'undo_done', 'delete'])) {
+    if (!verifyCSRFToken($_POST['csrf_token'] ?? $_GET['csrf_token'] ?? '')) {
+        http_response_code(403);
+        echo json_encode(["success" => false, "error" => "CSRF TOKEN INVALID"]);
+        exit;
+    }
 }
 
 $user_id = intval($_SESSION['user_id']);

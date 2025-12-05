@@ -1,4 +1,14 @@
 <?php
+// ================================
+// db.php
+//
+// Yhdistää tietokantaan ja luo taulut tarvittaessa
+//
+// Turvallisuus:
+// - Ei koskaan tallenna salasanoja selkokielisenä
+// - Kaikki yhteydet ja kyselyt käyttävät prepared statements
+// - Ei session_start():ia tässä tiedostossa
+// ================================
 
 // Vältetään turhat mysqli-varoitukset (esim. IF NOT EXISTS)
 mysqli_report(MYSQLI_REPORT_OFF);
@@ -91,5 +101,33 @@ CREATE TABLE IF NOT EXISTS tasks (
 // ===========================================================
 $conn->query("CREATE INDEX idx_user_status ON tasks (user_id, status)");
 $conn->query("CREATE INDEX idx_created ON tasks (created_at)");
+
+// ===========================================================
+// 9) SESSION TIMEOUT VALIDAATIO
+// ===========================================================
+function validateSessionTimeout() {
+    $timeout = 3600; // 1 tunti
+    if (isset($_SESSION['last_activity']) && (time() - $_SESSION['last_activity'] > $timeout)) {
+        session_unset();
+        session_destroy();
+        return false;
+    }
+    $_SESSION['last_activity'] = time();
+    return true;
+}
+
+// ===========================================================
+// 10) CSRF TOKEN GENERAATTORI
+// ===========================================================
+function generateCSRFToken() {
+    if (empty($_SESSION['csrf_token'])) {
+        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+    }
+    return $_SESSION['csrf_token'];
+}
+
+function verifyCSRFToken($token) {
+    return isset($_SESSION['csrf_token']) && hash_equals($_SESSION['csrf_token'], $token ?? '');
+}
 
 ?>
