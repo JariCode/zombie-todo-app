@@ -18,6 +18,9 @@ require __DIR__ . '/app/db.php';
 // Validoi session timeout
 validateSessionTimeout();
 
+// Generoi CSRF-token heti session alussa
+generateCSRFToken();
+
 // Turvallinen tulostus
 function clean($v) { return htmlspecialchars($v ?? '', ENT_QUOTES, 'UTF-8'); }
 
