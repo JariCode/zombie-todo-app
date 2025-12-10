@@ -30,6 +30,19 @@ if (!validateSessionTimeout() && $_GET['action'] !== 'login' && $_GET['action'] 
 $action = $_GET['action'] ?? null;
 
 /* ============================================================
+   Lokitusfunktio
+============================================================ */
+function logEvent($userId, $event) {
+    global $conn;
+    if (!$userId) return;
+
+    $stmt = $conn->prepare("INSERT INTO logs (user_id, event) VALUES (?, ?)");
+    $stmt->bind_param("is", $userId, $event);
+    $stmt->execute();
+    $stmt->close();
+}
+
+/* ============================================================
    Turvallinen tulostus
 ============================================================ */
 function clean($str) {
@@ -94,7 +107,8 @@ if ($action === "register") {
 
     $hash = password_hash($password, PASSWORD_DEFAULT);
 
-    $stmt = $conn->prepare("INSERT INTO users (username, email, password) VALUES (?, ?, ?)");
+    // HUOM: Lisätty role-sarake
+    $stmt = $conn->prepare("INSERT INTO users (username, email, password, role) VALUES (?, ?, ?, 'user')");
     $stmt->bind_param("sss", $username, $email, $hash);
     $stmt->execute();
     $newUserId = $stmt->insert_id;
@@ -102,13 +116,16 @@ if ($action === "register") {
 
     unset($_SESSION['old_username'], $_SESSION['old_email']);
 
-    // Turvallinen session uudelleenluonti (session fixation -suoja)
+    // Turvallinen session uudelleenluonti
     session_regenerate_id(true);
-    
+
     $_SESSION['user_id'] = $newUserId;
     $_SESSION['username'] = $username;
     $_SESSION['last_activity'] = time();
     $_SESSION['success'] = "Tervetuloa, $username!";
+
+    logEvent($newUserId, "register");
+
     header("Location: ../index.php");
     exit;
 }
@@ -118,7 +135,6 @@ if ($action === "register") {
 ============================================================ */
 if ($action === "login") {
 
-    // Validoi CSRF token
     if (!verifyCSRFToken($_POST['csrf_token'] ?? '')) {
         $_SESSION['error'] = 'Turvallisuusvirhe. Yritä uudelleen.';
         header('Location: ../index.php');
@@ -152,13 +168,14 @@ if ($action === "login") {
 
     unset($_SESSION['old_login_email']);
 
-    // Turvallinen session uudelleenluonti (session fixation -suoja)
     session_regenerate_id(true);
-    
+
     $_SESSION['user_id'] = $uid;
     $_SESSION['username'] = $username;
     $_SESSION['last_activity'] = time();
-    $_SESSION['success'] = "Tervetuloa, $username!";
+
+    logEvent($uid, "login");
+
     header("Location: ../index.php");
     exit;
 }
@@ -167,13 +184,16 @@ if ($action === "login") {
    3. LOGOUT
 ============================================================ */
 if ($action === "logout") {
-    // Turvallinen logout
+
+    logEvent($_SESSION['user_id'] ?? 0, "logout");
+
     $_SESSION = array();
     if (ini_get('session.use_cookies') && isset($_COOKIE[session_name()])) {
-        setcookie(session_name(), '', time() - 42000, '/', '', 
+        setcookie(session_name(), '', time() - 42000, '/', '',
             (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? true : false), true);
     }
     session_destroy();
+
     header("Location: ../index.php");
     exit;
 }
@@ -200,9 +220,10 @@ $user_id = intval($_SESSION['user_id']);
 $id = intval($_GET['id'] ?? 0);
 
 /* ============================================================
-   ADD TASK
+   4.1 ADD TASK
 ============================================================ */
 if ($action === "add") {
+
     $task = trim($_POST['task'] ?? '');
 
     if ($task === '') {
@@ -222,9 +243,10 @@ if ($action === "add") {
 }
 
 /* ============================================================
-   MERKITSE ALOITETUKSI
+   4.2 MERKITSE ALOITETUKSI
 ============================================================ */
 if ($action === "start" && $id > 0) {
+
     $stmt = $conn->prepare("
         UPDATE tasks
         SET status='in_progress', started_at = NOW()
@@ -238,9 +260,10 @@ if ($action === "start" && $id > 0) {
 }
 
 /* ============================================================
-   MERKITSE VALMIIKSI
+   4.3 MERKITSE VALMIIKSI
 ============================================================ */
 if ($action === "done" && $id > 0) {
+
     $stmt = $conn->prepare("
         UPDATE tasks
         SET status='done', done_at = NOW()
@@ -254,9 +277,10 @@ if ($action === "done" && $id > 0) {
 }
 
 /* ============================================================
-   UNDO: Käynnissä → Ei aloitettu
+   4.4 UNDO: Käynnissä → Ei aloitettu
 ============================================================ */
 if ($action === "undo_start" && $id > 0) {
+
     $stmt = $conn->prepare("
         UPDATE tasks
         SET status='not_started', started_at = NULL
@@ -270,9 +294,10 @@ if ($action === "undo_start" && $id > 0) {
 }
 
 /* ============================================================
-   UNDO: Valmis → Käynnissä
+   4.5 UNDO: Valmis → Käynnissä
 ============================================================ */
 if ($action === "undo_done" && $id > 0) {
+
     $stmt = $conn->prepare("
         UPDATE tasks
         SET status='in_progress', done_at = NULL
@@ -286,9 +311,10 @@ if ($action === "undo_done" && $id > 0) {
 }
 
 /* ============================================================
-   DELETE TASK
+   4.6 DELETE TASK
 ============================================================ */
 if ($action === "delete" && $id > 0) {
+
     $stmt = $conn->prepare("DELETE FROM tasks WHERE id=? AND user_id=?");
     $stmt->bind_param("ii", $id, $user_id);
     $stmt->execute();

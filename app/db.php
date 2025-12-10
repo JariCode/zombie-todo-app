@@ -73,7 +73,9 @@ CREATE TABLE IF NOT EXISTS users (
     username VARCHAR(50) NOT NULL,
     email VARCHAR(100) NOT NULL UNIQUE,
     password VARCHAR(255) NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    role ENUM('user','admin') NOT NULL DEFAULT 'user',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 ");
 
@@ -97,13 +99,51 @@ CREATE TABLE IF NOT EXISTS tasks (
 ");
 
 // ===========================================================
-// 8) INDEKSIT SUORITUSKYKYYN
+// 8) LUODAAN LOGS-TAULU
+// ===========================================================
+$conn->query("
+CREATE TABLE IF NOT EXISTS logs (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    event ENUM(
+        'register',
+        'login',
+        'logout',
+        'account_updated',
+        'account_deleted_user',
+        'password_reset_requested',
+        'password_reset_completed',
+        'account_deleted_admin',
+        'role_changed'
+    ) NOT NULL,
+    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+");
+
+// ===========================================================
+// 9) LUODAAN PASSWORD_RESET -TAULU
+// ===========================================================
+$conn->query("
+CREATE TABLE IF NOT EXISTS password_resets (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    token CHAR(64) NOT NULL,
+    expires_at DATETIME NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+");
+
+// ===========================================================
+// 10) INDEKSIT SUORITUSKYKYYN
 // ===========================================================
 $conn->query("CREATE INDEX idx_user_status ON tasks (user_id, status)");
 $conn->query("CREATE INDEX idx_created ON tasks (created_at)");
+$conn->query("CREATE INDEX idx_logs_user ON logs (user_id)");
+$conn->query("CREATE INDEX idx_password_resets_user ON password_resets (user_id)");
 
 // ===========================================================
-// 9) SESSION TIMEOUT VALIDAATIO
+// 11) SESSION TIMEOUT VALIDAATIO
 // ===========================================================
 function validateSessionTimeout() {
     $timeout = 3600; // 1 tunti
@@ -117,7 +157,7 @@ function validateSessionTimeout() {
 }
 
 // ===========================================================
-// 10) CSRF TOKEN GENERAATTORI
+// 12) CSRF TOKEN GENERAATTORI
 // ===========================================================
 function generateCSRFToken() {
     if (empty($_SESSION['csrf_token'])) {
