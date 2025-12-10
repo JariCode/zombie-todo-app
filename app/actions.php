@@ -199,7 +199,136 @@ if ($action === "logout") {
 }
 
 /* ============================================================
-   4. TASK ACTIONS – vain kirjautuneena
+  4 UPDATE PROFILE (username + email)
+============================================================ */
+if ($action === "update_profile") {
+
+    if (!verifyCSRFToken($_POST['csrf_token'] ?? '')) {
+        $_SESSION['error'] = "Turvallisuusvirhe.";
+        header("Location: ../profile.php");
+        exit;
+    }
+
+    $user_id = intval($_SESSION['user_id']);  // 🔥 TÄMÄ OLI PUUTTEESSA!
+
+    $username = trim($_POST["username"] ?? '');
+    $email    = trim($_POST["email"] ?? '');
+
+    if (!$username || !$email) {
+        $_SESSION['error'] = "Nimi ja sähköposti ovat pakollisia!";
+        header("Location: ../profile.php");
+        exit;
+    }
+
+    // Uniikki email muilla käyttäjillä
+    $stmt = $conn->prepare("SELECT id FROM users WHERE email=? AND id!=? LIMIT 1");
+    $stmt->bind_param("si", $email, $user_id);
+    $stmt->execute();
+    $stmt->store_result();
+
+    if ($stmt->num_rows > 0) {
+        $_SESSION['error'] = "Sähköposti on jo käytössä!";
+        header("Location: ../profile.php");
+        exit;
+    }
+    $stmt->close();
+
+    // Päivitä tiedot
+    $stmt = $conn->prepare("
+        UPDATE users 
+        SET username=?, email=?, updated_at=NOW()
+        WHERE id=?
+    ");
+    $stmt->bind_param("ssi", $username, $email, $user_id);
+    $stmt->execute();
+    $stmt->close();
+
+    // 🔥 PÄIVITÄ SESSION
+    $_SESSION['username'] = $username;
+
+    // 🔥 LOKI RIIVI PUUTTUI
+    logEvent($user_id, "account_updated");
+
+    $_SESSION['success'] = "Tiedot päivitetty onnistuneesti! 🧠";
+    header("Location: ../profile.php");
+    exit;
+}
+
+
+/* ============================================================
+   5 CHANGE PASSWORD
+============================================================ */
+if ($action === "change_password") {
+
+    if (!verifyCSRFToken($_POST['csrf_token'] ?? '')) {
+        $_SESSION['error'] = "Turvallisuusvirhe.";
+        header("Location: ../profile.php");
+        exit;
+    }
+
+    $user_id = intval($_SESSION['user_id']);  // 🔥 TÄMÄ PUUTTUI TÄÄLTÄKIN!
+
+    $old = trim($_POST["old_password"] ?? '');
+    $new = trim($_POST["new_password"] ?? '');
+    $new2 = trim($_POST["new_password2"] ?? '');
+
+    if (!$old || !$new || !$new2) {
+        $_SESSION['error'] = "Kaikki salasanakentät ovat pakollisia!";
+        header("Location: ../profile.php");
+        exit;
+    }
+
+    // Hae nykyinen hash
+    $stmt = $conn->prepare("SELECT password FROM users WHERE id=? LIMIT 1");
+    $stmt->bind_param("i", $user_id);
+    $stmt->execute();
+    $stmt->bind_result($current_hash);
+    $stmt->fetch();
+    $stmt->close();
+
+    if (!password_verify($old, $current_hash)) {
+        $_SESSION['error'] = "Vanha salasana on väärä!";
+        header("Location: ../profile.php");
+        exit;
+    }
+
+    if ($new !== $new2) {
+        $_SESSION['error'] = "Uudet salasanat eivät täsmää!";
+        header("Location: ../profile.php");
+        exit;
+    }
+
+    // Vahvuusvaatimukset
+    if (
+        strlen($new) < 10 ||
+        !preg_match('/[A-ZÅÄÖ]/', $new) ||
+        !preg_match('/[a-zåäö]/', $new) ||
+        !preg_match('/[0-9]/', $new) ||
+        !preg_match('/[!@#$%^&*()_\-+=\[\]{};:,.?]/', $new)
+    ) {
+        $_SESSION['error'] = "Uusi salasana ei täytä vaatimuksia!";
+        header("Location: ../profile.php");
+        exit;
+    }
+
+    $hash = password_hash($new, PASSWORD_DEFAULT);
+
+    $stmt = $conn->prepare("UPDATE users SET password=?, updated_at=NOW() WHERE id=?");
+    $stmt->bind_param("si", $hash, $user_id);
+    $stmt->execute();
+    $stmt->close();
+
+    // 🔥 LISÄÄ LOKI
+    logEvent($user_id, "account_updated");
+
+    $_SESSION['success'] = "Salasana vaihdettu onnistuneesti! 🔒";
+    header("Location: ../profile.php");
+    exit;
+}
+
+
+/* ============================================================
+   6 TASK ACTIONS – vain kirjautuneena
 ============================================================ */
 if (!isset($_SESSION['user_id'])) {
     http_response_code(403);
@@ -220,7 +349,7 @@ $user_id = intval($_SESSION['user_id']);
 $id = intval($_GET['id'] ?? 0);
 
 /* ============================================================
-   4.1 ADD TASK
+   6.1 ADD TASK
 ============================================================ */
 if ($action === "add") {
 
@@ -243,7 +372,7 @@ if ($action === "add") {
 }
 
 /* ============================================================
-   4.2 MERKITSE ALOITETUKSI
+   6.2 MERKITSE ALOITETUKSI
 ============================================================ */
 if ($action === "start" && $id > 0) {
 
@@ -260,7 +389,7 @@ if ($action === "start" && $id > 0) {
 }
 
 /* ============================================================
-   4.3 MERKITSE VALMIIKSI
+   6.3 MERKITSE VALMIIKSI
 ============================================================ */
 if ($action === "done" && $id > 0) {
 
@@ -277,7 +406,7 @@ if ($action === "done" && $id > 0) {
 }
 
 /* ============================================================
-   4.4 UNDO: Käynnissä → Ei aloitettu
+   6.4 UNDO: Käynnissä → Ei aloitettu
 ============================================================ */
 if ($action === "undo_start" && $id > 0) {
 
@@ -294,7 +423,7 @@ if ($action === "undo_start" && $id > 0) {
 }
 
 /* ============================================================
-   4.5 UNDO: Valmis → Käynnissä
+   6.5 UNDO: Valmis → Käynnissä
 ============================================================ */
 if ($action === "undo_done" && $id > 0) {
 
@@ -311,7 +440,7 @@ if ($action === "undo_done" && $id > 0) {
 }
 
 /* ============================================================
-   4.6 DELETE TASK
+   6.6 DELETE TASK
 ============================================================ */
 if ($action === "delete" && $id > 0) {
 
@@ -324,7 +453,7 @@ if ($action === "delete" && $id > 0) {
 }
 
 /* ============================================================
-   FALLBACK
+   6.7 FALLBACK
 ============================================================ */
 echo json_encode(['success' => false, 'error' => 'Unknown action']);
 exit;

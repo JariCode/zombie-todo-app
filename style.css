@@ -248,26 +248,32 @@ button:hover {
 .header-bar {
     display: flex;
     justify-content: space-between;
-    align-items: center;
+    align-items: flex-start;
     margin-bottom: 10px;
+    gap: 20px;
 }
 
 .header-bar > span {
-    margin-top: 15px;
     font-size: 1.2rem;
     font-weight: bold;
     color: #ff4444;
     text-shadow: 1px 1px black;
 }
 
-.header-bar > .logout-link {
+.header-links {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    align-items: flex-end;
+}
+
+.header-link {
     color: #ff6666;
     text-decoration: none;
     font-size: 1.1rem;
-    margin-top: 12px;
 }
 
-.logout-link:hover {
+.header-link:hover {
     color: #ff9999;
 }
 
@@ -338,6 +344,7 @@ button:hover {
     color: #eee;
 }
 
+
 @keyframes bloodPulse {
    0%   { box-shadow: 0 0 2px 0px #300; }
     50%  { box-shadow: 0 0 12px 6px #c00000; }
@@ -348,6 +355,8 @@ button:hover {
     0%, 100% { opacity: 1; }
     50% { opacity: 0.55; }
 }
+
+
 
 /* --- DESKTOP TASK LAYOUT --- */
 @media (min-width: 481px) {
@@ -405,12 +414,12 @@ button:hover {
     }
 
     .header-bar > span {
-    font-size: 0.9rem;
-}
+        font-size: 0.9rem;
+    }
 
-.header-bar > .logout-link {
-    font-size: 0.8rem;
-}
+    .header-link {
+        font-size: 0.8rem;
+    }
 
    .task {
         flex-direction: column;

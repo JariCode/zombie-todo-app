@@ -1,20 +1,13 @@
 <?php
 // ================================
-// db.php
-//
-// Yhdistää tietokantaan ja luo taulut tarvittaessa
-//
-// Turvallisuus:
-// - Ei koskaan tallenna salasanoja selkokielisenä
-// - Kaikki yhteydet ja kyselyt käyttävät prepared statements
-// - Ei session_start():ia tässä tiedostossa
+// db.php — täydellinen versio
 // ================================
 
-// Vältetään turhat mysqli-varoitukset (esim. IF NOT EXISTS)
+// Vältetään turhat mysqli-varoitukset
 mysqli_report(MYSQLI_REPORT_OFF);
 
 // ===========================================================
-// 1) LATAA .ENV TIEDOSTO TURVALLISESTI
+// 1) LATAA .ENV
 // ===========================================================
 $envFile = __DIR__ . "/.env";
 
@@ -34,7 +27,7 @@ if (file_exists($envFile)) {
 }
 
 // ===========================================================
-// 2) TIETOKANTA-ASETUKSET (.ENV TAI OLETUKSET)
+// 2) TIETOKANTA-ASETUKSET
 // ===========================================================
 $host   = $_ENV["DB_HOST"] ?? "localhost";
 $user   = $_ENV["DB_USER"] ?? "root";
@@ -42,7 +35,7 @@ $pass   = $_ENV["DB_PASS"] ?? "";
 $dbname = $_ENV["DB_NAME"] ?? "zombie_todo";
 
 // ===========================================================
-// 3) YHDISTYS ILMAN TIETOKANTAA
+// 3) YHDISTYS (EI TIETOKANTAA VIELÄ)
 // ===========================================================
 $conn = new mysqli($host, $user, $pass);
 
@@ -51,7 +44,7 @@ if ($conn->connect_error) {
 }
 
 // ===========================================================
-// 4) LUODAAN TIETOKANTA JOS PUUTTUU
+// 4) LUODAAN TIETOKANTA
 // ===========================================================
 $conn->query("
     CREATE DATABASE IF NOT EXISTS `$dbname`
@@ -65,7 +58,7 @@ $conn->query("
 $conn->select_db($dbname);
 
 // ===========================================================
-// 6) LUODAAN USERS-TAULU
+// 6) USERS-TAULU (täydellinen, dokumentin mukainen)
 // ===========================================================
 $conn->query("
 CREATE TABLE IF NOT EXISTS users (
@@ -80,14 +73,14 @@ CREATE TABLE IF NOT EXISTS users (
 ");
 
 // ===========================================================
-// 7) LUODAAN TASKS-TAULU
+// 7) TASKS-TAULU
 // ===========================================================
 $conn->query("
 CREATE TABLE IF NOT EXISTS tasks (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
     text VARCHAR(255) NOT NULL,
-    status ENUM('not_started', 'in_progress', 'done') 
+    status ENUM('not_started','in_progress','done') 
            NOT NULL DEFAULT 'not_started',
 
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -99,7 +92,7 @@ CREATE TABLE IF NOT EXISTS tasks (
 ");
 
 // ===========================================================
-// 8) LUODAAN LOGS-TAULU
+// 8) LOGS-TAULU
 // ===========================================================
 $conn->query("
 CREATE TABLE IF NOT EXISTS logs (
@@ -122,7 +115,7 @@ CREATE TABLE IF NOT EXISTS logs (
 ");
 
 // ===========================================================
-// 9) LUODAAN PASSWORD_RESET -TAULU
+// 9) PASSWORD_RESET-TABLE
 // ===========================================================
 $conn->query("
 CREATE TABLE IF NOT EXISTS password_resets (
@@ -135,15 +128,15 @@ CREATE TABLE IF NOT EXISTS password_resets (
 ");
 
 // ===========================================================
-// 10) INDEKSIT SUORITUSKYKYYN
+// 10) INDEKSIT
 // ===========================================================
-$conn->query("CREATE INDEX idx_user_status ON tasks (user_id, status)");
-$conn->query("CREATE INDEX idx_created ON tasks (created_at)");
-$conn->query("CREATE INDEX idx_logs_user ON logs (user_id)");
-$conn->query("CREATE INDEX idx_password_resets_user ON password_resets (user_id)");
+$conn->query("CREATE INDEX IF NOT EXISTS idx_user_status ON tasks (user_id, status)");
+$conn->query("CREATE INDEX IF NOT EXISTS idx_created ON tasks (created_at)");
+$conn->query("CREATE INDEX IF NOT EXISTS idx_logs_user ON logs (user_id)");
+$conn->query("CREATE INDEX IF NOT EXISTS idx_password_resets_user ON password_resets (user_id)");
 
 // ===========================================================
-// 11) SESSION TIMEOUT VALIDAATIO
+// 11) SESSION TIMEOUT
 // ===========================================================
 function validateSessionTimeout() {
     $timeout = 3600; // 1 tunti
@@ -157,7 +150,7 @@ function validateSessionTimeout() {
 }
 
 // ===========================================================
-// 12) CSRF TOKEN GENERAATTORI
+// 12) CSRF TOKENIT
 // ===========================================================
 function generateCSRFToken() {
     if (empty($_SESSION['csrf_token'])) {

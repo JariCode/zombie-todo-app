@@ -151,8 +151,12 @@ if (isset($_SESSION['user_id'])) {
 
         <div class="header-bar">
             <span class="welcome-text">Tervetuloa, <?= clean($_SESSION['username'] ?? '') ?>!</span>
-            <a href="app/actions.php?action=logout" class="logout-link">Kirjaudu ulos ❌</a>
+            <div class="header-links">
+                <a href="profile.php" class="header-link">Muokkaa&nbsp;tietoja&nbsp;🧟‍♀️</a>
+                <a href="app/actions.php?action=logout" class="header-link">Kirjaudu&nbsp;ulos&nbsp;❌</a>
+            </div>
         </div>
+
 
         <h1>ZOMBIE TO-DO</h1>
 
