@@ -70,10 +70,10 @@ function clean($v) { return htmlspecialchars($v ?? '', ENT_QUOTES, 'UTF-8'); }
             <input type="hidden" name="csrf_token" value="<?= clean(generateCSRFToken()) ?>">
 
             <label>Käyttäjänimi</label>
-            <input type="text" name="username" value="<?= clean($username) ?>" required>
+            <input type="text" name="username" placeholder="<?= clean($username) ?>" required autocomplete="off">
 
             <label>Sähköposti</label>
-            <input type="email" name="email" value="<?= clean($email) ?>" required>
+            <input type="email" name="email" placeholder="<?= clean($email) ?>" required autocomplete="off">
 
             <button type="submit">Tallenna muutokset 🧠</button>
         </form>
@@ -92,23 +92,48 @@ function clean($v) { return htmlspecialchars($v ?? '', ENT_QUOTES, 'UTF-8'); }
 
             <label>Vanha salasana</label>
             <div class="password-field">
-                <input type="password" name="old_password" required>
-                <button type="button" class="password-eye" aria-label="Näytä salasana (tulossa)">👁️</button>
+                <input type="password" name="old_password" placeholder="********" required>
+                <button type="button" class="password-eye" aria-label="Näytä salasana">👁️</button>
             </div>
 
             <label>Uusi salasana</label>
             <div class="password-field">
-                <input type="password" name="new_password" required>
-                <button type="button" class="password-eye" aria-label="Näytä salasana (tulossa)">👁️</button>
+                <input type="password" name="new_password" placeholder="********" required>
+                <button type="button" class="password-eye" aria-label="Näytä salasana">👁️</button>
             </div>
 
             <label>Uusi salasana uudelleen</label>
             <div class="password-field">
-                <input type="password" name="new_password2" required>
-                <button type="button" class="password-eye" aria-label="Näytä salasana (tulossa)">👁️</button>
+                <input type="password" name="new_password2" placeholder="********" required>
+                <button type="button" class="password-eye" aria-label="Näytä salasana">👁️</button>
             </div>
 
             <button type="submit">Vaihda salasana 🔒</button>
+        </form>
+    </div>
+
+    <!-- ======================== -->
+    <!--    KÄYTTÄJÄTILIN POISTO   -->
+    <!-- ======================== -->
+    <div class="auth-box">
+        <h2 class="auth-title">Poista tili 🪦</h2>
+
+        <form method="POST" action="app/actions.php?action=delete_account" autocomplete="off">
+            <input type="hidden" name="csrf_token" value="<?= clean(generateCSRFToken()) ?>">
+
+            <label>Käyttäjänimi</label>
+            <input type="text" name="confirm_username" placeholder="<?= clean($username) ?>" required autocomplete="off">
+
+            <label>Sähköposti</label>
+            <input type="email" name="confirm_email" placeholder="<?= clean($email) ?>" required autocomplete="off">
+
+            <label>Vahvista salasana</label>
+            <div class="password-field">
+                <input type="password" name="confirm_password" placeholder="********" required autocomplete="off">
+                <button type="button" class="password-eye" aria-label="Näytä salasana">👁️</button>
+            </div>
+
+            <button type="submit">Poista tili pysyvästi 🩸</button>
         </form>
     </div>
 

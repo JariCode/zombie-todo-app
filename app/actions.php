@@ -335,6 +335,108 @@ if ($action === "change_password") {
     exit;
 }
 
+/* ============================================================
+   6 DELETE ACCOUNT
+============================================================ */
+if ($action === "delete_account") {
+
+    if (!verifyCSRFToken($_POST['csrf_token'] ?? '')) {
+        $_SESSION['error'] = "Turvallisuusvirhe.";
+        header("Location: ../profile.php");
+        exit;
+    }
+
+    if (!isset($_SESSION['user_id'])) {
+        $_SESSION['error'] = "Kirjaudu sisään.";
+        header("Location: ../index.php");
+        exit;
+    }
+
+    $user_id = intval($_SESSION['user_id']);
+
+    $confirm_username = trim($_POST['confirm_username'] ?? '');
+    $confirm_email    = trim($_POST['confirm_email'] ?? '');
+    $confirm_password = trim($_POST['confirm_password'] ?? '');
+
+    if (!$confirm_username || !$confirm_email || !$confirm_password) {
+        $_SESSION['error'] = "Kaikki kentät ovat pakollisia.";
+        header("Location: ../profile.php");
+        exit;
+    }
+
+    // Hae nykyiset käyttäjätiedot
+    $stmt = $conn->prepare("SELECT username, email, password FROM users WHERE id=? LIMIT 1");
+    $stmt->bind_param("i", $user_id);
+    $stmt->execute();
+    $stmt->bind_result($db_username, $db_email, $db_hash);
+    $stmt->fetch();
+    $stmt->close();
+
+    if (!$db_username) {
+        $_SESSION['error'] = "Käyttäjää ei löydy.";
+        header("Location: ../profile.php");
+        exit;
+    }
+
+    if (strcasecmp($confirm_username, $db_username) !== 0 || strcasecmp($confirm_email, $db_email) !== 0) {
+        $_SESSION['error'] = "Käyttäjänimi tai sähköposti ei täsmää.";
+        header("Location: ../profile.php");
+        exit;
+    }
+
+    if (!password_verify($confirm_password, $db_hash)) {
+        $_SESSION['error'] = "Salasana on väärä.";
+        header("Location: ../profile.php");
+        exit;
+    }
+
+    // Poistetaan kaikki käyttäjän data transaktiossa
+    $conn->begin_transaction();
+
+    $ok = true;
+
+    $stmt = $conn->prepare("DELETE FROM tasks WHERE user_id=?");
+    if ($stmt) {
+        $stmt->bind_param("i", $user_id);
+        $ok = $ok && $stmt->execute();
+        $stmt->close();
+    } else { $ok = false; }
+
+    $stmt = $conn->prepare("DELETE FROM logs WHERE user_id=?");
+    if ($stmt) {
+        $stmt->bind_param("i", $user_id);
+        $ok = $ok && $stmt->execute();
+        $stmt->close();
+    } else { $ok = false; }
+
+    $stmt = $conn->prepare("DELETE FROM users WHERE id=?");
+    if ($stmt) {
+        $stmt->bind_param("i", $user_id);
+        $ok = $ok && $stmt->execute();
+        $stmt->close();
+    } else { $ok = false; }
+
+    if ($ok) {
+        $conn->commit();
+    } else {
+        $conn->rollback();
+        $_SESSION['error'] = "Tilin poistossa tapahtui virhe.";
+        header("Location: ../profile.php");
+        exit;
+    }
+
+    // Tuhotaan sessio ja ohjataan ulos
+    $_SESSION = array();
+    if (ini_get('session.use_cookies') && isset($_COOKIE[session_name()])) {
+        setcookie(session_name(), '', time() - 42000, '/', '',
+            (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? true : false), true);
+    }
+    session_destroy();
+
+    header("Location: ../index.php");
+    exit;
+}
+
 
 /* ============================================================
    6 TASK ACTIONS – vain kirjautuneena
