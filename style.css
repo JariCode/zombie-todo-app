@@ -215,6 +215,18 @@ button:hover {
     box-sizing: border-box;   /* <--- KORJAUS */
 }
 
+/* Salasanakentän silmä-ikonin sijoittelu */
+.password-field {
+    position: relative;
+    margin-bottom: 15px;
+}
+
+.password-field input {
+    width: 100%;
+    padding-right: 44px;
+    margin-bottom: 0;
+}
+
 
 /* Rekisteröidy ja login -napit */
 .auth-box button {
@@ -232,6 +244,33 @@ button:hover {
 
 .auth-box button:hover {
     background: #cc0000;
+}
+
+/* Silmäpainike: overridee auth-box button -säännöt */
+.password-field .password-eye {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    background: none;
+    border: none;
+    color: #ff6666;
+    cursor: pointer;
+    font-size: 1.05rem;
+    line-height: 1;
+    box-shadow: none;
+    outline: none;
+    appearance: none;
+}
+
+.password-field .password-eye:hover {
+    color: #ffc0c0;
 }
 
 /* LOGIN ↔ REGISTER separator */
