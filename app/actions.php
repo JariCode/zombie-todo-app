@@ -64,13 +64,22 @@ if ($action === "register") {
     $username = trim($_POST['username'] ?? '');
     $email    = trim($_POST['email'] ?? '');
     $password = trim($_POST['password'] ?? '');
+    $password_confirm = trim($_POST['password_confirm'] ?? '');
     $terms    = isset($_POST['terms']);
 
     $_SESSION['old_username'] = $username;
     $_SESSION['old_email']    = $email;
 
-    if (!$username || !$email || !$password) {
+    if (!$username || !$email || !$password || !$password_confirm) {
         $_SESSION['error'] = "Kaikki kentät ovat pakollisia!";
+        header("Location: ../index.php");
+        exit;
+    }
+
+    if ($password !== $password_confirm) {
+        $_SESSION['error'] = "Salasanat eivät täsmää!";
+        $_SESSION['old_username'] = $username;
+        $_SESSION['old_email']    = $email;
         header("Location: ../index.php");
         exit;
     }

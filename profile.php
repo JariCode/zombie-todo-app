@@ -69,16 +69,16 @@ function clean($v) { return htmlspecialchars($v ?? '', ENT_QUOTES, 'UTF-8'); }
         <form method="POST" action="app/actions.php?action=update_profile" autocomplete="off">
             <input type="hidden" name="csrf_token" value="<?= clean(generateCSRFToken()) ?>">
 
-            <label>Käyttäjänimi (nykyinen: <?= clean($username) ?>)</label>
-            <input type="text" name="username" value="" placeholder="Uusi käyttäjänimi" required autocomplete="off">
+            <label>Käyttäjänimi</label>
+            <input type="text" name="username" value="<?= clean($username) ?>" required>
 
-            <label>Sähköposti (nykyinen: <?= clean($email) ?>)</label>
-            <input type="email" name="email" value="" placeholder="Uusi sähköposti" required autocomplete="off">
+            <label>Sähköposti</label>
+            <input type="email" name="email" value="<?= clean($email) ?>" required>
 
             <button type="submit">Tallenna muutokset 🧠</button>
         </form>
 
-        <a href="index.php" class="header-link" style="display: inline-block; margin-top: 15px;">Takaisin&nbsp;⚰️</a>
+        <a href="index.php" class="header-link" style="display: inline-block; margin-top: 15px;">Takaisin&nbsp;☠️</a>
     </div>
 
     <!-- ======================== -->

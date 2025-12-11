@@ -129,6 +129,9 @@ if (isset($_SESSION['user_id'])) {
             <label>Salasana</label>
             <input type="password" name="password" placeholder="********" required autocomplete="off">
 
+            <label>Toista salasana</label>
+            <input type="password" name="password_confirm" placeholder="********" required autocomplete="off">
+
             <div class="checkbox-wrapper">
                 <label for="acceptPrivacyPolicy" class="checkbox-label">
                     <input type="checkbox" id="acceptPrivacyPolicy" name="terms" required>
