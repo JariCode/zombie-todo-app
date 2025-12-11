@@ -91,13 +91,22 @@ function clean($v) { return htmlspecialchars($v ?? '', ENT_QUOTES, 'UTF-8'); }
             <input type="hidden" name="csrf_token" value="<?= clean(generateCSRFToken()) ?>">
 
             <label>Vanha salasana</label>
-            <input type="password" name="old_password" required>
+            <div class="password-field">
+                <input type="password" name="old_password" required>
+                <button type="button" class="password-eye" aria-label="Näytä salasana (tulossa)">👁️</button>
+            </div>
 
             <label>Uusi salasana</label>
-            <input type="password" name="new_password" required>
+            <div class="password-field">
+                <input type="password" name="new_password" required>
+                <button type="button" class="password-eye" aria-label="Näytä salasana (tulossa)">👁️</button>
+            </div>
 
             <label>Uusi salasana uudelleen</label>
-            <input type="password" name="new_password2" required>
+            <div class="password-field">
+                <input type="password" name="new_password2" required>
+                <button type="button" class="password-eye" aria-label="Näytä salasana (tulossa)">👁️</button>
+            </div>
 
             <button type="submit">Vaihda salasana 🔒</button>
         </form>
