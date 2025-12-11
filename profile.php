@@ -114,5 +114,20 @@ function clean($v) { return htmlspecialchars($v ?? '', ENT_QUOTES, 'UTF-8'); }
 
 </div>
 
+</div>
+
+<script>
+// Näytä/piilota salasana - vain tälle sivulle
+document.querySelectorAll('.password-field .password-eye').forEach((btn) => {
+    btn.addEventListener('click', () => {
+        const input = btn.parentElement.querySelector('input');
+        if (!input) return;
+        const isHidden = input.type === 'password';
+        input.type = isHidden ? 'text' : 'password';
+        btn.setAttribute('aria-label', isHidden ? 'Piilota salasana' : 'Näytä salasana');
+    });
+});
+</script>
+
 </body>
 </html>
