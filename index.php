@@ -60,7 +60,7 @@ if (isset($_SESSION['user_id'])) {
 
 <div class="container">
 
-    <img src="assets/img/header-zombie.png.png" class="hero">
+    <img src="assets/img/Herokuva.webp" class="hero">
 
     <div class="wip-banner">🧠 WORK IN PROGRESS… BRAINS LOADING 🩸</div>
 

@@ -48,7 +48,7 @@ function clean($v) { return htmlspecialchars($v ?? '', ENT_QUOTES, 'UTF-8'); }
 
 <div class="container">
 
-    <img src="assets/img/header-zombie.png.png" class="hero">
+    <img src="assets/img/hero_logo.png" class="hero">
 
     <h1>ZOMBIE UPDATE</h1>
 
