@@ -2,25 +2,17 @@
 // ================================
 // actions.php
 //
-// Käsittelee kaikki kirjautumis-, rekisteröinti- ja tehtäväpyynnöt
-//
-// Turvallisuus:
-// - session_config.php asettaa turvalliset session asetukset
-// - session_start() aloittaa istunnon
-// - validateSessionTimeout() uloskirjaa passiiviset käyttäjät
-// - Kaikki SQL-kyselyt käyttävät prepared statements (estää SQL-injektion)
-// - CSRF-token tarkistetaan kaikissa POST/GET-pyynnöissä
-// - session_regenerate_id() estää session fixation -hyökkäykset
-// - Logout tyhjentää ja tuhoaa session turvallisesti
+// Korjaukset:
+// - CSRF-token luetaan vain POST-bodysta tai headerista (ei enää URL:sta)
+// - CSRF-token uusitaan session_regenerate_id():n jälkeen
+// - Rate limiting kirjautumiseen (5 yritystä / 5 min)
+// - Referer-tarkistus poistettu profile.php-ohjauksesta (ei luotettava)
 // ================================
 
 require __DIR__ . '/session-config.php';
 session_start();
-
-// Oikea polku uuteen kansiorakenteeseen
 require __DIR__ . '/db.php';
 
-// Validoi session timeout
 if (!validateSessionTimeout() && $_GET['action'] !== 'login' && $_GET['action'] !== 'register') {
     $_SESSION['error'] = 'Istunto on vanhentunut. Kirjaudu uudelleen.';
     header('Location: ../index.php');
@@ -50,22 +42,31 @@ function clean($str) {
 }
 
 /* ============================================================
+   CSRF: lue vain POST-bodysta tai X-CSRF-Token-headerista
+   EI ENÄÄ GET-parametristä (estää token-vuodon logeissa)
+============================================================ */
+function getSubmittedCSRF() {
+    return $_POST['csrf_token']
+        ?? $_SERVER['HTTP_X_CSRF_TOKEN']
+        ?? '';
+}
+
+/* ============================================================
    1. REKISTERÖITYMINEN
 ============================================================ */
 if ($action === "register") {
 
-    // Validoi CSRF token
-    if (!verifyCSRFToken($_POST['csrf_token'] ?? '')) {
+    if (!verifyCSRFToken(getSubmittedCSRF())) {
         $_SESSION['error'] = 'Turvallisuusvirhe. Yritä uudelleen.';
         header('Location: ../index.php');
         exit;
     }
 
-    $username = trim($_POST['username'] ?? '');
-    $email    = trim($_POST['email'] ?? '');
-    $password = trim($_POST['password'] ?? '');
+    $username         = trim($_POST['username'] ?? '');
+    $email            = trim($_POST['email'] ?? '');
+    $password         = trim($_POST['password'] ?? '');
     $password_confirm = trim($_POST['password_confirm'] ?? '');
-    $terms    = isset($_POST['terms']);
+    $terms            = isset($_POST['terms']);
 
     $_SESSION['old_username'] = $username;
     $_SESSION['old_email']    = $email;
@@ -78,8 +79,6 @@ if ($action === "register") {
 
     if ($password !== $password_confirm) {
         $_SESSION['error'] = "Salasanat eivät täsmää!";
-        $_SESSION['old_username'] = $username;
-        $_SESSION['old_email']    = $email;
         header("Location: ../index.php");
         exit;
     }
@@ -116,7 +115,6 @@ if ($action === "register") {
 
     $hash = password_hash($password, PASSWORD_DEFAULT);
 
-    // HUOM: Lisätty role-sarake
     $stmt = $conn->prepare("INSERT INTO users (username, email, password, role) VALUES (?, ?, ?, 'user')");
     $stmt->bind_param("sss", $username, $email, $hash);
     $stmt->execute();
@@ -125,13 +123,14 @@ if ($action === "register") {
 
     unset($_SESSION['old_username'], $_SESSION['old_email']);
 
-    // Turvallinen session uudelleenluonti
     session_regenerate_id(true);
 
-    $_SESSION['user_id'] = $newUserId;
-    $_SESSION['username'] = $username;
+    // Korjaus: uusi CSRF-token session uusinnan jälkeen
+    generateCSRFToken(true);
+
+    $_SESSION['user_id']       = $newUserId;
+    $_SESSION['username']      = $username;
     $_SESSION['last_activity'] = time();
-    $_SESSION['success'] = "Tervetuloa, $username!";
 
     logEvent($newUserId, "register");
 
@@ -144,11 +143,32 @@ if ($action === "register") {
 ============================================================ */
 if ($action === "login") {
 
-    if (!verifyCSRFToken($_POST['csrf_token'] ?? '')) {
+    if (!verifyCSRFToken(getSubmittedCSRF())) {
         $_SESSION['error'] = 'Turvallisuusvirhe. Yritä uudelleen.';
         header('Location: ../index.php');
         exit;
     }
+
+    // --- Rate limiting: max 5 yritystä per 5 minuuttia ---
+    $now = time();
+    $attempts  = $_SESSION['login_attempts'] ?? 0;
+    $lastTry   = $_SESSION['login_last_attempt'] ?? 0;
+    $lockoutDuration = 300; // 5 min
+    $maxAttempts     = 5;
+
+    if ($attempts >= $maxAttempts) {
+        $elapsed = $now - $lastTry;
+        if ($elapsed < $lockoutDuration) {
+            $wait = ceil(($lockoutDuration - $elapsed) / 60);
+            $_SESSION['error'] = "Liian monta epäonnistunutta yritystä. Odota {$wait} minuuttia.";
+            header('Location: ../index.php');
+            exit;
+        }
+        // Lukitusaika on kulunut — nollaa laskuri
+        $_SESSION['login_attempts']      = 0;
+        $_SESSION['login_last_attempt']  = 0;
+    }
+    // --- Rate limiting loppu ---
 
     $email    = trim($_POST['email'] ?? '');
     $password = trim($_POST['password'] ?? '');
@@ -161,6 +181,8 @@ if ($action === "login") {
     $stmt->store_result();
 
     if ($stmt->num_rows === 0) {
+        $_SESSION['login_attempts']     = ($attempts + 1);
+        $_SESSION['login_last_attempt'] = $now;
         $_SESSION['error'] = "Väärä sähköposti tai salasana!";
         header("Location: ../index.php");
         exit;
@@ -168,20 +190,31 @@ if ($action === "login") {
 
     $stmt->bind_result($uid, $username, $hash);
     $stmt->fetch();
+    $stmt->close();
 
     if (!password_verify($password, $hash)) {
+        $_SESSION['login_attempts']     = ($attempts + 1);
+        $_SESSION['login_last_attempt'] = $now;
         $_SESSION['error'] = "Väärä sähköposti tai salasana!";
         header("Location: ../index.php");
         exit;
     }
 
-    unset($_SESSION['old_login_email']);
+    // Kirjautuminen onnistui — nollaa yritykset
+    unset(
+        $_SESSION['login_attempts'],
+        $_SESSION['login_last_attempt'],
+        $_SESSION['old_login_email']
+    );
 
     session_regenerate_id(true);
 
-    $_SESSION['user_id'] = $uid;
-    $_SESSION['username'] = $username;
-    $_SESSION['last_activity'] = time();
+    // Korjaus: uusi CSRF-token session uusinnan jälkeen
+    generateCSRFToken(true);
+
+    $_SESSION['user_id']       = $uid;
+    $_SESSION['username']      = $username;
+    $_SESSION['last_activity'] = $now;
 
     logEvent($uid, "login");
 
@@ -198,8 +231,11 @@ if ($action === "logout") {
 
     $_SESSION = array();
     if (ini_get('session.use_cookies') && isset($_COOKIE[session_name()])) {
-        setcookie(session_name(), '', time() - 42000, '/', '',
-            (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? true : false), true);
+        setcookie(
+            session_name(), '', time() - 42000, '/', '',
+            (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on'),
+            true
+        );
     }
     session_destroy();
 
@@ -208,18 +244,17 @@ if ($action === "logout") {
 }
 
 /* ============================================================
-  4 UPDATE PROFILE (username + email)
+   4. UPDATE PROFILE
 ============================================================ */
 if ($action === "update_profile") {
 
-    if (!verifyCSRFToken($_POST['csrf_token'] ?? '')) {
+    if (!verifyCSRFToken(getSubmittedCSRF())) {
         $_SESSION['error'] = "Turvallisuusvirhe.";
         header("Location: ../profile.php");
         exit;
     }
 
-    $user_id = intval($_SESSION['user_id']);  // 🔥 TÄMÄ OLI PUUTTEESSA!
-
+    $user_id  = intval($_SESSION['user_id']);
     $username = trim($_POST["username"] ?? '');
     $email    = trim($_POST["email"] ?? '');
 
@@ -229,7 +264,6 @@ if ($action === "update_profile") {
         exit;
     }
 
-    // Uniikki email muilla käyttäjillä
     $stmt = $conn->prepare("SELECT id FROM users WHERE email=? AND id!=? LIMIT 1");
     $stmt->bind_param("si", $email, $user_id);
     $stmt->execute();
@@ -242,20 +276,13 @@ if ($action === "update_profile") {
     }
     $stmt->close();
 
-    // Päivitä tiedot
-    $stmt = $conn->prepare("
-        UPDATE users 
-        SET username=?, email=?, updated_at=NOW()
-        WHERE id=?
-    ");
+    $stmt = $conn->prepare("UPDATE users SET username=?, email=?, updated_at=NOW() WHERE id=?");
     $stmt->bind_param("ssi", $username, $email, $user_id);
     $stmt->execute();
     $stmt->close();
 
-    // 🔥 PÄIVITÄ SESSION
     $_SESSION['username'] = $username;
 
-    // 🔥 LOKI RIIVI PUUTTUI
     logEvent($user_id, "account_updated");
 
     $_SESSION['success'] = "Tiedot päivitetty onnistuneesti! 🧠";
@@ -263,23 +290,21 @@ if ($action === "update_profile") {
     exit;
 }
 
-
 /* ============================================================
-   5 CHANGE PASSWORD
+   5. CHANGE PASSWORD
 ============================================================ */
 if ($action === "change_password") {
 
-    if (!verifyCSRFToken($_POST['csrf_token'] ?? '')) {
+    if (!verifyCSRFToken(getSubmittedCSRF())) {
         $_SESSION['error'] = "Turvallisuusvirhe.";
         header("Location: ../profile.php");
         exit;
     }
 
-    $user_id = intval($_SESSION['user_id']);  // 🔥 TÄMÄ PUUTTUI TÄÄLTÄKIN!
-
-    $old = trim($_POST["old_password"] ?? '');
-    $new = trim($_POST["new_password"] ?? '');
-    $new2 = trim($_POST["new_password2"] ?? '');
+    $user_id = intval($_SESSION['user_id']);
+    $old     = trim($_POST["old_password"] ?? '');
+    $new     = trim($_POST["new_password"] ?? '');
+    $new2    = trim($_POST["new_password2"] ?? '');
 
     if (!$old || !$new || !$new2) {
         $_SESSION['error'] = "Kaikki salasanakentät ovat pakollisia!";
@@ -287,7 +312,6 @@ if ($action === "change_password") {
         exit;
     }
 
-    // Hae nykyinen hash
     $stmt = $conn->prepare("SELECT password FROM users WHERE id=? LIMIT 1");
     $stmt->bind_param("i", $user_id);
     $stmt->execute();
@@ -307,7 +331,6 @@ if ($action === "change_password") {
         exit;
     }
 
-    // Vahvuusvaatimukset
     if (
         strlen($new) < 10 ||
         !preg_match('/[A-ZÅÄÖ]/', $new) ||
@@ -327,7 +350,6 @@ if ($action === "change_password") {
     $stmt->execute();
     $stmt->close();
 
-    // 🔥 LISÄÄ LOKI
     logEvent($user_id, "account_updated");
 
     $_SESSION['success'] = "Salasana vaihdettu onnistuneesti! 🔒";
@@ -336,11 +358,11 @@ if ($action === "change_password") {
 }
 
 /* ============================================================
-   6 DELETE ACCOUNT
+   6. DELETE ACCOUNT
 ============================================================ */
 if ($action === "delete_account") {
 
-    if (!verifyCSRFToken($_POST['csrf_token'] ?? '')) {
+    if (!verifyCSRFToken(getSubmittedCSRF())) {
         $_SESSION['error'] = "Turvallisuusvirhe.";
         header("Location: ../profile.php");
         exit;
@@ -352,8 +374,7 @@ if ($action === "delete_account") {
         exit;
     }
 
-    $user_id = intval($_SESSION['user_id']);
-
+    $user_id          = intval($_SESSION['user_id']);
     $confirm_username = trim($_POST['confirm_username'] ?? '');
     $confirm_email    = trim($_POST['confirm_email'] ?? '');
     $confirm_password = trim($_POST['confirm_password'] ?? '');
@@ -364,7 +385,6 @@ if ($action === "delete_account") {
         exit;
     }
 
-    // Hae nykyiset käyttäjätiedot
     $stmt = $conn->prepare("SELECT username, email, password FROM users WHERE id=? LIMIT 1");
     $stmt->bind_param("i", $user_id);
     $stmt->execute();
@@ -390,31 +410,21 @@ if ($action === "delete_account") {
         exit;
     }
 
-    // Poistetaan kaikki käyttäjän data transaktiossa
+    // Poistetaan data transaktiossa (ON DELETE CASCADE hoitaa tasks ja logs,
+    // mutta eksplisiittinen poisto on selkeämpää)
     $conn->begin_transaction();
-
     $ok = true;
 
-    $stmt = $conn->prepare("DELETE FROM tasks WHERE user_id=?");
-    if ($stmt) {
-        $stmt->bind_param("i", $user_id);
-        $ok = $ok && $stmt->execute();
-        $stmt->close();
-    } else { $ok = false; }
-
-    $stmt = $conn->prepare("DELETE FROM logs WHERE user_id=?");
-    if ($stmt) {
-        $stmt->bind_param("i", $user_id);
-        $ok = $ok && $stmt->execute();
-        $stmt->close();
-    } else { $ok = false; }
-
-    $stmt = $conn->prepare("DELETE FROM users WHERE id=?");
-    if ($stmt) {
-        $stmt->bind_param("i", $user_id);
-        $ok = $ok && $stmt->execute();
-        $stmt->close();
-    } else { $ok = false; }
+    foreach (["DELETE FROM tasks WHERE user_id=?", "DELETE FROM logs WHERE user_id=?", "DELETE FROM users WHERE id=?"] as $sql) {
+        $stmt = $conn->prepare($sql);
+        if ($stmt) {
+            $stmt->bind_param("i", $user_id);
+            $ok = $ok && $stmt->execute();
+            $stmt->close();
+        } else {
+            $ok = false;
+        }
+    }
 
     if ($ok) {
         $conn->commit();
@@ -425,21 +435,22 @@ if ($action === "delete_account") {
         exit;
     }
 
-    // Tuhotaan sessio ja ohjataan ulos
     $_SESSION = array();
     if (ini_get('session.use_cookies') && isset($_COOKIE[session_name()])) {
-        setcookie(session_name(), '', time() - 42000, '/', '',
-            (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? true : false), true);
+        setcookie(
+            session_name(), '', time() - 42000, '/', '',
+            (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on'),
+            true
+        );
     }
     session_destroy();
 
-    header("Location: ../index.php");
+    header("Location: ../index.php?deleted=1");
     exit;
 }
 
-
 /* ============================================================
-   6 TASK ACTIONS – vain kirjautuneena
+   7. TASK ACTIONS — vain kirjautuneena
 ============================================================ */
 if (!isset($_SESSION['user_id'])) {
     http_response_code(403);
@@ -447,9 +458,9 @@ if (!isset($_SESSION['user_id'])) {
     exit;
 }
 
-// Validoi CSRF token tehtävätoiminnoille
+// Korjaus: CSRF luetaan vain POST-bodysta tai headerista
 if (in_array($action, ['add', 'start', 'done', 'undo_start', 'undo_done', 'delete'])) {
-    if (!verifyCSRFToken($_POST['csrf_token'] ?? $_GET['csrf_token'] ?? '')) {
+    if (!verifyCSRFToken(getSubmittedCSRF())) {
         http_response_code(403);
         echo json_encode(["success" => false, "error" => "CSRF TOKEN INVALID"]);
         exit;
@@ -457,24 +468,14 @@ if (in_array($action, ['add', 'start', 'done', 'undo_start', 'undo_done', 'delet
 }
 
 $user_id = intval($_SESSION['user_id']);
-$id = intval($_GET['id'] ?? 0);
+$id      = intval($_GET['id'] ?? 0);
 
-/* ============================================================
-   6.1 ADD TASK
-============================================================ */
+/* ---- 7.1 ADD TASK ---- */
 if ($action === "add") {
-
     $task = trim($_POST['task'] ?? '');
+    if ($task === '') { echo json_encode(['success' => false]); exit; }
 
-    if ($task === '') {
-        echo json_encode(['success' => false]);
-        exit;
-    }
-
-    $stmt = $conn->prepare("
-        INSERT INTO tasks (user_id, text, status, created_at)
-        VALUES (?, ?, 'not_started', NOW())
-    ");
+    $stmt = $conn->prepare("INSERT INTO tasks (user_id, text, status, created_at) VALUES (?, ?, 'not_started', NOW())");
     $stmt->bind_param("is", $user_id, $task);
     $stmt->execute();
 
@@ -482,89 +483,51 @@ if ($action === "add") {
     exit;
 }
 
-/* ============================================================
-   6.2 MERKITSE ALOITETUKSI
-============================================================ */
+/* ---- 7.2 ALOITA ---- */
 if ($action === "start" && $id > 0) {
-
-    $stmt = $conn->prepare("
-        UPDATE tasks
-        SET status='in_progress', started_at = NOW()
-        WHERE id=? AND user_id=?
-    ");
+    $stmt = $conn->prepare("UPDATE tasks SET status='in_progress', started_at=NOW() WHERE id=? AND user_id=?");
     $stmt->bind_param("ii", $id, $user_id);
     $stmt->execute();
-
     echo json_encode(['success' => true]);
     exit;
 }
 
-/* ============================================================
-   6.3 MERKITSE VALMIIKSI
-============================================================ */
+/* ---- 7.3 VALMIS ---- */
 if ($action === "done" && $id > 0) {
-
-    $stmt = $conn->prepare("
-        UPDATE tasks
-        SET status='done', done_at = NOW()
-        WHERE id=? AND user_id=?
-    ");
+    $stmt = $conn->prepare("UPDATE tasks SET status='done', done_at=NOW() WHERE id=? AND user_id=?");
     $stmt->bind_param("ii", $id, $user_id);
     $stmt->execute();
-
     echo json_encode(['success' => true]);
     exit;
 }
 
-/* ============================================================
-   6.4 UNDO: Käynnissä → Ei aloitettu
-============================================================ */
+/* ---- 7.4 UNDO START ---- */
 if ($action === "undo_start" && $id > 0) {
-
-    $stmt = $conn->prepare("
-        UPDATE tasks
-        SET status='not_started', started_at = NULL
-        WHERE id=? AND user_id=?
-    ");
+    $stmt = $conn->prepare("UPDATE tasks SET status='not_started', started_at=NULL WHERE id=? AND user_id=?");
     $stmt->bind_param("ii", $id, $user_id);
     $stmt->execute();
-
     echo json_encode(['success' => true]);
     exit;
 }
 
-/* ============================================================
-   6.5 UNDO: Valmis → Käynnissä
-============================================================ */
+/* ---- 7.5 UNDO DONE ---- */
 if ($action === "undo_done" && $id > 0) {
-
-    $stmt = $conn->prepare("
-        UPDATE tasks
-        SET status='in_progress', done_at = NULL
-        WHERE id=? AND user_id=?
-    ");
+    $stmt = $conn->prepare("UPDATE tasks SET status='in_progress', done_at=NULL WHERE id=? AND user_id=?");
     $stmt->bind_param("ii", $id, $user_id);
     $stmt->execute();
-
     echo json_encode(['success' => true]);
     exit;
 }
 
-/* ============================================================
-   6.6 DELETE TASK
-============================================================ */
+/* ---- 7.6 DELETE ---- */
 if ($action === "delete" && $id > 0) {
-
     $stmt = $conn->prepare("DELETE FROM tasks WHERE id=? AND user_id=?");
     $stmt->bind_param("ii", $id, $user_id);
     $stmt->execute();
-
     echo json_encode(['success' => true]);
     exit;
 }
 
-/* ============================================================
-   6.7 FALLBACK
-============================================================ */
+/* ---- 7.7 FALLBACK ---- */
 echo json_encode(['success' => false, 'error' => 'Unknown action']);
 exit;

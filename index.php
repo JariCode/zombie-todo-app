@@ -1,44 +1,34 @@
 <?php
 // ================================
-// Zombie To-Do -etusivu
+// index.php
 //
-// Turvallisuus:
-// - session_config.php asettaa turvalliset session asetukset
-// - session_start() aloittaa istunnon
-// - validateSessionTimeout() uloskirjaa passiiviset käyttäjät
-// - clean() funktio estää XSS-hyökkäykset
-// - Kaikki SQL-kyselyt käyttävät prepared statements (estää SQL-injektion)
-// - CSRF-token kaikissa lomakkeissa ja AJAX-toiminnoissa
+// Korjaukset:
+// - AJAX-kutsuissa CSRF lähetetään X-CSRF-Token-headerina (ei enää URL:ssa)
 // ================================
 
 require __DIR__ . '/app/session-config.php';
 session_start();
 require __DIR__ . '/app/db.php';
 
-// Validoi session timeout
 validateSessionTimeout();
-
-// Generoi CSRF-token heti session alussa
 generateCSRFToken();
 
-// Turvallinen tulostus
 function clean($v) { return htmlspecialchars($v ?? '', ENT_QUOTES, 'UTF-8'); }
 
-// Jos kirjautunut, haetaan tehtävät
 if (isset($_SESSION['user_id'])) {
     $uid = intval($_SESSION['user_id']);
 
-    $notStarted  = $conn->prepare("SELECT * FROM tasks WHERE user_id=? AND status='not_started' ORDER BY id DESC");
+    $notStarted = $conn->prepare("SELECT * FROM tasks WHERE user_id=? AND status='not_started' ORDER BY id DESC");
     $notStarted->bind_param("i", $uid);
     $notStarted->execute();
     $notStarted = $notStarted->get_result();
 
-    $inProgress  = $conn->prepare("SELECT * FROM tasks WHERE user_id=? AND status='in_progress' ORDER BY id DESC");
+    $inProgress = $conn->prepare("SELECT * FROM tasks WHERE user_id=? AND status='in_progress' ORDER BY id DESC");
     $inProgress->bind_param("i", $uid);
     $inProgress->execute();
     $inProgress = $inProgress->get_result();
 
-    $doneTasks   = $conn->prepare("SELECT * FROM tasks WHERE user_id=? AND status='done' ORDER BY id DESC");
+    $doneTasks = $conn->prepare("SELECT * FROM tasks WHERE user_id=? AND status='done' ORDER BY id DESC");
     $doneTasks->bind_param("i", $uid);
     $doneTasks->execute();
     $doneTasks = $doneTasks->get_result();
@@ -55,7 +45,6 @@ if (isset($_SESSION['user_id'])) {
 </head>
 <body>
 
-<!-- Veri -->
 <div class="blood"></div>
 
 <div class="container">
@@ -64,16 +53,25 @@ if (isset($_SESSION['user_id'])) {
 
     <div class="wip-banner">🧠 WORK IN PROGRESS… BRAINS LOADING 🩸</div>
 
-    <!-- VIRHE- JA ONNISTUMISVIESTIT -->
     <?php if (!empty($_SESSION['error'])): ?>
         <div class="auth-error"><?= clean($_SESSION['error']); unset($_SESSION['error']); ?></div>
     <?php endif; ?>
 
-    <?php if (!isset($_SESSION['user_id'])): ?>
+    <?php if (isset($_GET['deleted'])): ?>
+        <div class="auth-success" id="deleted-msg">Tilisi on poistettu pysyvästi. Vaella rauhassa, zombi. 🪦🩸</div>
+        <script>
+            setTimeout(() => {
+                const msg = document.getElementById('deleted-msg');
+                if (msg) {
+                    msg.style.transition = 'opacity 1s';
+                    msg.style.opacity = '0';
+                    setTimeout(() => { if (msg) msg.remove(); }, 1000);
+                }
+            }, 4000);
+        </script>
+    <?php endif; ?>
 
-    <!-- =========================== -->
-    <!--          LOGIN BOX         -->
-    <!-- =========================== -->
+    <?php if (!isset($_SESSION['user_id'])): ?>
 
     <h1>ZOMBIE LOGIN</h1>
 
@@ -94,7 +92,7 @@ if (isset($_SESSION['user_id'])) {
             <label>Salasana</label>
             <div class="password-field">
                 <input type="password" name="password" placeholder="********" required autocomplete="off">
-                <button type="button" class="password-eye" aria-label="Näytä salasana (tulossa)">👁️</button>
+                <button type="button" class="password-eye" aria-label="Näytä salasana">👁️</button>
             </div>
 
             <button type="submit">Kirjaudu sisään 🔑</button>
@@ -102,10 +100,6 @@ if (isset($_SESSION['user_id'])) {
     </div>
 
     <div class="auth-separator">TAI LUO TILI</div>
-
-    <!-- =========================== -->
-    <!--        REGISTER BOX         -->
-    <!-- =========================== -->
 
     <div class="auth-box">
         <h2 class="auth-title">Rekisteröidy</h2>
@@ -132,13 +126,13 @@ if (isset($_SESSION['user_id'])) {
             <label>Salasana</label>
             <div class="password-field">
                 <input type="password" name="password" placeholder="********" required autocomplete="off">
-                <button type="button" class="password-eye" aria-label="Näytä salasana (tulossa)">👁️</button>
+                <button type="button" class="password-eye" aria-label="Näytä salasana">👁️</button>
             </div>
 
             <label>Toista salasana</label>
             <div class="password-field">
                 <input type="password" name="password_confirm" placeholder="********" required autocomplete="off">
-                <button type="button" class="password-eye" aria-label="Näytä salasana (tulossa)">👁️</button>
+                <button type="button" class="password-eye" aria-label="Näytä salasana">👁️</button>
             </div>
 
             <div class="checkbox-wrapper">
@@ -160,10 +154,6 @@ if (isset($_SESSION['user_id'])) {
 
     <?php else: ?>
 
-        <!-- =========================== -->
-        <!--        HEADER + LOGOUT      -->
-        <!-- =========================== -->
-
         <div class="header-bar">
             <span class="welcome-text">Tervetuloa, <?= clean($_SESSION['username'] ?? '') ?>!</span>
             <div class="header-links">
@@ -172,12 +162,7 @@ if (isset($_SESSION['user_id'])) {
             </div>
         </div>
 
-
         <h1>ZOMBIE TO-DO</h1>
-
-<!-- =========================== -->
-<!--        TODO-APPLICATION     -->
-<!-- =========================== -->
 
 <div class="todo-box">
 
@@ -187,63 +172,48 @@ if (isset($_SESSION['user_id'])) {
         <button type="submit">Lisää</button>
     </form>
 
-    <!-- EI ALOITETUT -->
     <h2 class="section-title not-started">🧠 Ei aloitetut</h2>
     <div class="task-list">
     <?php while ($task = $notStarted->fetch_assoc()): ?>
         <div class="task">
-
             <div class="task-info">
                 <span><?= clean($task['text']) ?></span>
-
-                <small class="timestamp">
-                    Lisätty: <?= date("d.m.Y H:i", strtotime($task['created_at'])) ?>
-                </small>
+                <small class="timestamp">Lisätty: <?= date("d.m.Y H:i", strtotime($task['created_at'])) ?></small>
             </div>
-
             <div class="actions">
                 <button type="button" data-action="start" data-id="<?= $task['id'] ?>">⚔️</button>
                 <button type="button" data-action="delete" data-id="<?= $task['id'] ?>">🗑</button>
             </div>
-
         </div>
     <?php endwhile; ?>
     </div>
 
-    <!-- KÄYNNISSÄ -->
     <h2 class="section-title in-progress">🪓 Käynnissä</h2>
     <div class="task-list">
     <?php while ($task = $inProgress->fetch_assoc()): ?>
         <div class="task">
-
             <div class="task-info">
                 <span><?= clean($task['text']) ?></span>
-
                 <small class="timestamp">
                     Lisätty: <?= date("d.m.Y H:i", strtotime($task['created_at'])) ?>
                     <br>Aloitettu: <?= date("d.m.Y H:i", strtotime($task['started_at'])) ?>
                 </small>
             </div>
-
             <div class="actions">
                 <button type="button" data-action="done" data-id="<?= $task['id'] ?>">✓</button>
                 <button type="button" data-action="undo_start" data-id="<?= $task['id'] ?>">☠️</button>
                 <button type="button" data-action="delete" data-id="<?= $task['id'] ?>">🗑</button>
             </div>
-
         </div>
     <?php endwhile; ?>
     </div>
 
-    <!-- VALMIIT -->
     <h2 class="section-title done-title">🪦 Valmiit</h2>
     <div class="task-list">
     <?php while ($task = $doneTasks->fetch_assoc()): ?>
         <div class="task done">
-
             <div class="task-info">
                 <span class="task-text"><?= clean($task['text']) ?></span>
-
                 <small class="timestamp">
                     Lisätty: <?= date("d.m.Y H:i", strtotime($task['created_at'])) ?>
                     <?php if (!empty($task['started_at'])): ?>
@@ -254,24 +224,21 @@ if (isset($_SESSION['user_id'])) {
                     <?php endif; ?>
                 </small>
             </div>
-
             <div class="actions">
                 <button type="button" data-action="undo_done" data-id="<?= $task['id'] ?>">☠️</button>
                 <button type="button" data-action="delete" data-id="<?= $task['id'] ?>">🗑</button>
             </div>
-
         </div>
     <?php endwhile; ?>
     </div>
 
-</div> <!-- /todo-box -->
+</div>
 
 <?php endif; ?>
 
-</div> <!-- /container -->
+</div>
 
 <script>
-// Näytä/piilota salasana kirjautumis- ja rekisteröintilomakkeissa
 document.querySelectorAll('.password-field .password-eye').forEach((btn) => {
     btn.addEventListener('click', () => {
         const input = btn.parentElement?.querySelector('input');
@@ -285,58 +252,65 @@ document.querySelectorAll('.password-field .password-eye').forEach((btn) => {
 
 <?php if (isset($_SESSION['user_id'])): ?>
 <script>
+// Korjaus: CSRF lähetetään X-CSRF-Token-headerina, ei URL-parametrina
+function getCSRF() {
+    return document.querySelector('input[name="csrf_token"]')?.value || '';
+}
+
 async function refreshTasks() {
     const prevScroll = window.scrollY;
     const box = document.querySelector(".todo-box");
 
-    // 🔥 SAFARI FIX: Freeze layout ennen DOM-päivitystä
     const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
-    let frozenHeight = null;
-
     if (isSafari) {
-        frozenHeight = box.offsetHeight;
-        box.style.height = frozenHeight + "px";
+        box.style.height = box.offsetHeight + "px";
         box.style.overflow = "hidden";
     }
 
-    // Hae uusi sisältö
-    const html = await fetch("app/partial-tasks.php").then(res => res.text());
-    const form = box.querySelector("form").outerHTML;
+    // Korjaus: CSRF headerissa
+    const html = await fetch("app/partial-tasks.php", {
+        headers: { 'X-CSRF-Token': getCSRF() }
+    }).then(res => res.text());
 
-    // Korvataan sisältö
+    const form = box.querySelector("form").outerHTML;
     box.innerHTML = form + html;
 
     attachTaskEvents();
     setupEnterKey();
     setupFormSubmit();
-    // Focus without scrolling when possible
+
     setTimeout(() => {
         const input = document.querySelector('.input-area input[name="task"]');
         if (input) {
-            try { input.focus({ preventScroll: true }); } catch (err) { input.focus(); }
+            try { input.focus({ preventScroll: true }); } catch (e) { input.focus(); }
         }
     }, 0);
 
-    // 🔥 Unfreeze Safari layout
     if (isSafari) {
         box.style.height = '';
         box.style.overflow = '';
     }
 
-    // 🔥 Chrome / Edge / Firefox: Restore scroll after UI settled
     requestAnimationFrame(() => requestAnimationFrame(() => window.scrollTo(0, prevScroll)));
-
 }
 
 function attachTaskEvents() {
-    document.querySelectorAll('.actions a, .actions button').forEach(el => {
+    document.querySelectorAll('.actions button').forEach(el => {
         el.addEventListener('click', async (e) => {
             e.preventDefault();
             e.stopPropagation();
             const action = el.dataset.action;
             const id     = el.dataset.id;
-            const csrf   = document.querySelector('input[name="csrf_token"]')?.value || '';
-            await fetch(`app/actions.php?action=${action}&id=${id}&csrf_token=${encodeURIComponent(csrf)}`);
+
+            // Korjaus: CSRF headerissa POST-bodyn sijaan, ID URL:ssa (ei arkaluonteinen)
+            await fetch(`app/actions.php?action=${action}&id=${id}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRF-Token': getCSRF()
+                },
+                body: ''
+            });
             refreshTasks();
         });
     });
@@ -345,8 +319,7 @@ function attachTaskEvents() {
 function setupEnterKey() {
     const input = document.querySelector(".input-area input");
     if (!input) return;
-
-    input.addEventListener("keydown", function (e) {
+    input.addEventListener("keydown", (e) => {
         if (e.key === "Enter") {
             e.preventDefault();
             document.querySelector(".input-area").requestSubmit();
@@ -357,13 +330,14 @@ function setupEnterKey() {
 function setupFormSubmit() {
     const form = document.querySelector(".input-area");
     if (!form) return;
-
     form.addEventListener("submit", async (e) => {
         e.preventDefault();
         const formData = new FormData(e.target);
-        const csrf = document.querySelector('input[name="csrf_token"]')?.value;
-        if (csrf) formData.append('csrf_token', csrf);
-        await fetch("app/actions.php?action=add", { method: "POST", body: formData });
+        await fetch("app/actions.php?action=add", {
+            method: "POST",
+            body: formData
+            // Huom: FormData sisältää csrf_token-kentän lomakkeesta
+        });
         e.target.reset();
         refreshTasks();
     });
@@ -372,11 +346,7 @@ function setupFormSubmit() {
 function focusInput() {
     const input = document.querySelector(".input-area input");
     if (!input) return;
-    try {
-        input.focus({ preventScroll: true });
-    } catch (err) {
-        input.focus();
-    }
+    try { input.focus({ preventScroll: true }); } catch (e) { input.focus(); }
 }
 
 attachTaskEvents();

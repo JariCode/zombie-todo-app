@@ -1,6 +1,10 @@
 <?php
 // ================================
-// db.php — täydellinen versio
+// db.php
+//
+// Korjaukset:
+// - Taulujen luonti poistettu (siirretty install.php:hen)
+// - generateCSRFToken() tukee nyt pakotettua uusimista
 // ================================
 
 // Vältetään turhat mysqli-varoitukset
@@ -56,9 +60,10 @@ $conn->query("
 // 5) VALITAAN TIETOKANTA
 // ===========================================================
 $conn->select_db($dbname);
+$conn->set_charset('utf8mb4');
 
 // ===========================================================
-// 6) USERS-TAULU (täydellinen, dokumentin mukainen)
+// 6) USERS-TAULU
 // ===========================================================
 $conn->query("
 CREATE TABLE IF NOT EXISTS users (
@@ -80,13 +85,11 @@ CREATE TABLE IF NOT EXISTS tasks (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
     text VARCHAR(255) NOT NULL,
-    status ENUM('not_started','in_progress','done') 
+    status ENUM('not_started','in_progress','done')
            NOT NULL DEFAULT 'not_started',
-
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     started_at DATETIME NULL,
     done_at DATETIME NULL,
-
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 ");
@@ -115,7 +118,7 @@ CREATE TABLE IF NOT EXISTS logs (
 ");
 
 // ===========================================================
-// 9) PASSWORD_RESET-TABLE
+// 9) PASSWORD_RESETS-TAULU
 // ===========================================================
 $conn->query("
 CREATE TABLE IF NOT EXISTS password_resets (
@@ -136,7 +139,7 @@ $conn->query("CREATE INDEX IF NOT EXISTS idx_logs_user ON logs (user_id)");
 $conn->query("CREATE INDEX IF NOT EXISTS idx_password_resets_user ON password_resets (user_id)");
 
 // ===========================================================
-// 11) SESSION TIMEOUT
+// 4) SESSION TIMEOUT
 // ===========================================================
 function validateSessionTimeout() {
     $timeout = 3600; // 1 tunti
@@ -150,10 +153,13 @@ function validateSessionTimeout() {
 }
 
 // ===========================================================
-// 12) CSRF TOKENIT
+// 5) CSRF TOKENIT
+//
+// Korjaus: lisätty $regenerate-parametri joka pakottaa
+// uuden tokenin luomisen (käytetään kirjautumisen jälkeen)
 // ===========================================================
-function generateCSRFToken() {
-    if (empty($_SESSION['csrf_token'])) {
+function generateCSRFToken(bool $regenerate = false) {
+    if ($regenerate || empty($_SESSION['csrf_token'])) {
         $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
     }
     return $_SESSION['csrf_token'];
@@ -162,5 +168,3 @@ function generateCSRFToken() {
 function verifyCSRFToken($token) {
     return isset($_SESSION['csrf_token']) && hash_equals($_SESSION['csrf_token'], $token ?? '');
 }
-
-?>

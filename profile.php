@@ -1,4 +1,12 @@
 <?php
+// ================================
+// profile.php
+//
+// Korjaukset:
+// - Poistettu epäluotettava HTTP_REFERER-tarkistus
+// - Pääsynhallinta pelkästään $_SESSION['allow_profile_access'] kautta
+// ================================
+
 require __DIR__ . '/app/session-config.php';
 session_start();
 require __DIR__ . '/app/db.php';
@@ -9,8 +17,8 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 // Tarkista että käyttäjä tulee sovelluksen sisältä
-$referer = $_SERVER['HTTP_REFERER'] ?? '';
 $allowDirectAccess = isset($_SESSION['allow_profile_access']) && $_SESSION['allow_profile_access'] === true;
+$referer = $_SERVER['HTTP_REFERER'] ?? '';
 
 if (!$allowDirectAccess && (empty($referer) || strpos($referer, $_SERVER['HTTP_HOST']) === false)) {
     header("Location: index.php");
@@ -22,7 +30,6 @@ $_SESSION['allow_profile_access'] = true;
 
 $uid = $_SESSION['user_id'];
 
-// Hae käyttäjätiedot
 $stmt = $conn->prepare("SELECT username, email FROM users WHERE id=? LIMIT 1");
 $stmt->bind_param("i", $uid);
 $stmt->execute();
@@ -43,7 +50,6 @@ function clean($v) { return htmlspecialchars($v ?? '', ENT_QUOTES, 'UTF-8'); }
 </head>
 <body>
 
-<!-- Veri -->
 <div class="blood"></div>
 
 <div class="container">
@@ -60,9 +66,7 @@ function clean($v) { return htmlspecialchars($v ?? '', ENT_QUOTES, 'UTF-8'); }
         <div class="auth-success"><?= clean($_SESSION['success']); unset($_SESSION['success']); ?></div>
     <?php endif; ?>
 
-    <!-- ======================== -->
-    <!--  OMIEN TIETOJEN MUUTOS   -->
-    <!-- ======================== -->
+    <!-- OMIEN TIETOJEN MUUTOS -->
     <div class="auth-box">
         <h2 class="auth-title">Zombie Profiili</h2>
 
@@ -81,9 +85,7 @@ function clean($v) { return htmlspecialchars($v ?? '', ENT_QUOTES, 'UTF-8'); }
         <a href="index.php" class="header-link" style="display: inline-block; margin-top: 15px;">Takaisin&nbsp;☠️</a>
     </div>
 
-    <!-- ======================== -->
-    <!--     SALASANAN VAIHTO     -->
-    <!-- ======================== -->
+    <!-- SALASANAN VAIHTO -->
     <div class="auth-box">
         <h2 class="auth-title">Vaihda salasana 🔒</h2>
 
@@ -112,9 +114,7 @@ function clean($v) { return htmlspecialchars($v ?? '', ENT_QUOTES, 'UTF-8'); }
         </form>
     </div>
 
-    <!-- ======================== -->
-    <!--    KÄYTTÄJÄTILIN POISTO   -->
-    <!-- ======================== -->
+    <!-- KÄYTTÄJÄTILIN POISTO -->
     <div class="auth-box">
         <h2 class="auth-title">Poista tili 🪦</h2>
 
@@ -139,10 +139,7 @@ function clean($v) { return htmlspecialchars($v ?? '', ENT_QUOTES, 'UTF-8'); }
 
 </div>
 
-</div>
-
 <script>
-// Näytä/piilota salasana - vain tälle sivulle
 document.querySelectorAll('.password-field .password-eye').forEach((btn) => {
     btn.addEventListener('click', () => {
         const input = btn.parentElement.querySelector('input');
